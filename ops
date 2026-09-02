@@ -1,0 +1,127 @@
+#!/usr/bin/env python3
+"""ops -- shared operator primitives for this machine.
+
+Runtime-neutral by design. Claude, Codex, Kiki, Orca, a shell alias or a cron
+job all call the same implementation; no runtime owns the logic.
+
+Contract, relied on by every caller:
+  * human-readable text on stdout by default, `--json` for machines
+  * exit 0 = healthy, 1 = warnings, 2 = action required
+  * read-only unless a destructive flag is passed explicitly
+
+Stdlib only, so there is nothing to install before calling it.
+"""
+
+from __future__ import annotations
+
+import argparse
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from opslib.model import emit  # noqa: E402
+
+VERBS = {
+    "triage":  "What needs your attention right now",
+    "safe":    "Is any valuable work stranded in one fragile place",
+    "reap":    "What processes are leaked (reports; --kill to act)",
+    "machine": "Is this machine healthy enough to keep working",
+    "newproj": "Create a project correctly, with a remote, first time",
+    "registry": "Show or render the project registry",
+}
+
+
+def build_parser() -> argparse.ArgumentParser:
+    p = argparse.ArgumentParser(
+        prog="ops",
+        description=__doc__.split("\n")[1],
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="verbs:\n" + "\n".join(f"  {k:<9} {v}" for k, v in VERBS.items()),
+    )
+    p.add_argument("--version", action="version", version="ops 1.0 (schema v1)")
+    sub = p.add_subparsers(dest="verb", metavar="<verb>")
+
+    def common(sp):
+        sp.add_argument("--json", action="store_true", help="machine-readable output")
+        sp.add_argument("--quiet", action="store_true",
+                        help="only action-required findings")
+        return sp
+
+    t = common(sub.add_parser("triage", help=VERBS["triage"]))
+    t.add_argument("--scope", default="all",
+                   choices=["all", "git", "orca", "junior", "process"])
+
+    s = common(sub.add_parser("safe", help=VERBS["safe"]))
+    s.add_argument("--root", action="append", help="limit scan to these roots")
+
+    r = common(sub.add_parser("reap", help=VERBS["reap"]))
+    r.add_argument("--kill", action="store_true",
+                   help="actually terminate; without this nothing is signalled")
+    r.add_argument("--pid", action="append", type=int,
+                   help="restrict --kill to these pids (required with --kill)")
+
+    common(sub.add_parser("machine", help=VERBS["machine"]))
+
+    n = sub.add_parser("newproj", help=VERBS["newproj"])
+    n.add_argument("name")
+    n.add_argument("--area", default="labs",
+                   help="subdirectory of ~/dev (default: labs)")
+    n.add_argument("--lifecycle", default="warm",
+                   choices=["warm", "active", "dormant"],
+                   help="default warm: canonical repo, no coordination overhead")
+    n.add_argument("--description", default="")
+    n.add_argument("--dry-run", action="store_true")
+    n.add_argument("--json", action="store_true")
+
+    g = sub.add_parser("registry", help=VERBS["registry"])
+    g.add_argument("action", nargs="?", default="show",
+                   choices=["show", "render", "reconcile"])
+    g.add_argument("--json", action="store_true")
+    return p
+
+
+def main(argv=None) -> int:
+    args = build_parser().parse_args(argv)
+    if not args.verb:
+        build_parser().print_help()
+        return 0
+
+    if args.verb == "triage":
+        from opslib import triage
+        return emit(triage.run(args.scope), args.json, args.quiet)
+
+    if args.verb == "safe":
+        from opslib import safe
+        return emit(safe.run(args.root), args.json, args.quiet)
+
+    if args.verb == "reap":
+        from opslib import reap
+        if args.kill and not args.pid:
+            print("refusing to kill without explicit --pid. "
+                  "Run `ops reap` first and choose.", file=sys.stderr)
+            return 2
+        return emit(reap.run(kill=args.kill, pids=args.pid), args.json, args.quiet)
+
+    if args.verb == "machine":
+        from opslib import machine
+        return emit(machine.run(), args.json, args.quiet)
+
+    if args.verb == "newproj":
+        from opslib import newproj
+        return newproj.run(args.name, area=args.area, lifecycle=args.lifecycle,
+                           description=args.description, dry_run=args.dry_run,
+                           as_json=args.json)
+
+    if args.verb == "registry":
+        from opslib import registry
+        return registry.cli(args.action, as_json=args.json)
+
+    return 0
+
+
+if __name__ == "__main__":
+    try:
+        sys.exit(main())
+    except KeyboardInterrupt:
+        sys.exit(130)
