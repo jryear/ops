@@ -150,15 +150,29 @@ def orca_repos() -> dict[str, str]:
     return out
 
 
-def github_repos() -> set[str]:
-    out = _cmd(["gh", "repo", "list", "--limit", "200",
-                "--json", "nameWithOwner"], timeout=40)
+def _gh_owner(owner: str = "") -> set[str]:
+    out = _cmd(["gh", "repo", "list", *([owner] if owner else []),
+                "--limit", "300", "--json", "nameWithOwner"], timeout=40)
     if not out:
         return set()
     try:
         return {f"github.com/{r['nameWithOwner']}" for r in json.loads(out)}
     except (json.JSONDecodeError, KeyError, TypeError):
         return set()
+
+
+def github_repos(owners: set[str] | None = None) -> set[str]:
+    """The user's own repos, plus any org that a registered remote points at.
+
+    Querying only the personal account made every org-owned repo -- mercahq,
+    outsourc-e, PatientPassLLC -- report as "remote missing". A check that
+    fires on healthy repos gets ignored, so the orgs are queried too.
+    """
+    found = _gh_owner()
+    for o in sorted(owners or set()):
+        if not any(k.startswith(f"github.com/{o}/") for k in found):
+            found |= _gh_owner(o)
+    return found
 
 
 def _canonical_key(remote_url: str) -> str:
@@ -174,12 +188,31 @@ def _canonical_key(remote_url: str) -> str:
     return u[:-4] if u.endswith(".git") else u
 
 
+def _reachable(path: str) -> bool:
+    """Can we actually fetch from this checkout's origin? Network, so callers
+    should reach for it only after the cheap membership check has already
+    failed."""
+    try:
+        r = subprocess.run(["git", "-C", path, "ls-remote", "--exit-code",
+                            "origin", "HEAD"],
+                           capture_output=True, text=True, timeout=20,
+                           env={**os.environ, "GIT_TERMINAL_PROMPT": "0"})
+        return r.returncode == 0
+    except (subprocess.SubprocessError, OSError):
+        return False
+
+
 def derive(entries: dict[str, Entry] | None = None) -> dict:
     """Join stored lifecycle against live git, Orca and GitHub state."""
     entries = load() if entries is None else entries
     repos = {r.path: r for r in discover.scan()}
     orca = orca_repos()
-    gh = github_repos()
+    owners = set()
+    for e in entries.values():
+        key = e.remote or ""
+        if key.startswith("github.com/") and key.count("/") >= 2:
+            owners.add(key.split("/")[1])
+    gh = github_repos(owners)
 
     rows = []
     for pid, e in sorted(entries.items()):
@@ -234,15 +267,40 @@ def reconcile() -> Report:
                     {"id": row["id"]})
             continue
         if row["remote"] and gh and not row["remote_on_github"]:
-            rep.add(WARN, "registry.remote_missing", row["name"],
-                    f"remote {row['remote']} is not in your GitHub account",
-                    "Confirm the remote still exists; it may be an org repo.",
-                    {"id": row["id"]})
+            # `safe` deliberately stays local and fast so the Stop hook can run
+            # it. Reachability costs network, so it lives here instead -- but a
+            # remote that does not resolve is the same as no remote, and
+            # bridge-agent-workspace's 82 commits were exactly that.
+            reachable = _reachable(row["path"])
+            if reachable:
+                continue
+            sev = ACTION if row["commits"] > 1 else WARN
+            rep.add(sev, "registry.remote_gone", row["name"],
+                    f"remote {row['remote']} does not resolve and cannot be "
+                    f"fetched - {row['commits']} commits exist only on this disk",
+                    "Re-point it at a remote you control: "
+                    "gh repo create --private --source . --push",
+                    {"id": row["id"], "path": row["path"]})
         if not row["remote"]:
             rep.add(ACTION, "registry.no_remote", row["name"],
                     f"{row['commits']} commits and no remote - the only copy",
                     "gh repo create --private --source . --push",
                     {"id": row["id"], "path": row["path"]})
+
+    # Two checkouts claiming one remote means one of them is a clone that looks
+    # canonical. `tradewell` and `merca-platform` shared a remote for months.
+    by_remote: dict[str, list[str]] = {}
+    for row in d["rows"]:
+        if row["remote"]:
+            by_remote.setdefault(row["remote"], []).append(row["name"])
+    for remote, names in sorted(by_remote.items()):
+        if len(names) > 1:
+            rep.add(WARN, "registry.remote_shared", ", ".join(sorted(names)),
+                    f"{len(names)} checkouts claim {remote}; only one can be "
+                    f"canonical and the others are clones",
+                    "Decide which is canonical; give the clones their own "
+                    "remote or drop them from the registry.",
+                    {"remote": remote, "projects": sorted(names)})
 
     # Durable local work the index has never heard of. Worktrees are excluded:
     # they belong to a registered repo, they are not projects in their own right.
@@ -319,6 +377,10 @@ def render() -> str:
                 state.append("**missing**")
             if r["unpushed"]:
                 state.append(f"{r['unpushed']} unpushed")
+            # Uncommitted work is the point of this column: hermes-os rendered
+            # as "clean" while holding 14,831 uncommitted files.
+            if r["dirty"]:
+                state.append(f"{r['dirty']} uncommitted")
             if r["worktrees"]:
                 state.append(f"{r['worktrees']} worktrees")
             out.append(f"| {r['name']} | `{path}` | {remote} | {r['runtime']} | "

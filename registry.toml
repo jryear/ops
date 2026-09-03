@@ -5,3 +5,211 @@
 # fields that another system already owns -- see opslib/registry.py.
 #
 # lifecycle: active (being worked on now; has Hermes/Orca coordination) | warm (canonical repo and remote, no coordination overhead) | dormant (not in progress; kept because it may return) | frozen (finished or superseded; kept for the record only)
+
+[project.bridge-agent-workspace]
+name = "bridge-agent-workspace"
+path = "/Users/jryear/Desktop/projects/bridge-agent-workspace"
+remote = "github.com/PatientPassLLC/bridge-agent-workspace"
+lifecycle = "dormant"
+runtime = "unknown"
+last_verified = "2026-09-03T16:39:06+00:00"
+
+[project.dash-logic]
+name = "dash-logic"
+path = "/Users/jryear/Desktop/projects/DASH"
+remote = "github.com/jryear/dash-logic"
+lifecycle = "warm"
+runtime = "unknown"
+last_verified = "2026-09-03T16:39:06+00:00"
+
+[project.eigen-ucie]
+name = "eigen-ucie"
+path = "/Users/jryear/Desktop/jr/jryear/ucie/eigen"
+remote = "github.com/jryear/eigen-ucie"
+lifecycle = "dormant"
+runtime = "unknown"
+last_verified = "2026-09-03T16:39:06+00:00"
+
+[project.failure-first-safety-kernel]
+name = "failure-first-safety-kernel"
+path = "/Users/jryear/Desktop/projects/public-releases/failure-first-safety-kernel"
+remote = "github.com/jryear/failure-first-safety-kernel"
+lifecycle = "warm"
+runtime = "unknown"
+last_verified = "2026-09-03T16:39:06+00:00"
+
+[project.graph-doctor]
+name = "graph-doctor"
+path = "/Users/jryear/Junior/graph-doctor"
+remote = "github.com/jryear/graph-doctor"
+lifecycle = "warm"
+runtime = "orca"
+last_verified = "2026-09-03T16:39:06+00:00"
+
+[project.hermes-os]
+name = "hermes-os"
+path = "/Users/jryear/Desktop/projects/hermes-os"
+remote = "github.com/jryear/hermes-os"
+lifecycle = "warm"
+runtime = "unknown"
+last_verified = "2026-09-03T16:39:06+00:00"
+
+[project.hermes-workspace]
+name = "hermes-workspace"
+path = "/Users/jryear/Desktop/projects/hermes-workspace"
+remote = "github.com/outsourc-e/hermes-workspace"
+lifecycle = "warm"
+runtime = "unknown"
+last_verified = "2026-09-03T16:39:06+00:00"
+
+[project.hillside-recovered]
+name = "hillside-recovered"
+path = "/Users/jryear/Documents/ChatGPT/hillside"
+remote = "github.com/jryear/hillside-recovered"
+lifecycle = "warm"
+runtime = "orca"
+last_verified = "2026-09-03T16:39:06+00:00"
+
+[project.imogen]
+name = "imogen"
+path = "/Users/jryear/Desktop/jr/jryear/imogen"
+remote = "github.com/jryear/imogen"
+lifecycle = "dormant"
+runtime = "unknown"
+last_verified = "2026-09-03T16:39:06+00:00"
+
+[project.imogen-chat-proj]
+name = "imogen-chat-proj"
+path = "/Users/jryear/Desktop/projects/ImogenChatProj/ImogenChat"
+remote = "github.com/jryear/imogen-chat-proj"
+lifecycle = "dormant"
+runtime = "unknown"
+last_verified = "2026-09-03T16:39:06+00:00"
+
+[project.imogen-v1]
+name = "imogen-v1"
+path = "/Users/jryear/Desktop/jr/jryear/imogen-v1"
+remote = "github.com/jryear/imogen-v1"
+lifecycle = "dormant"
+runtime = "unknown"
+last_verified = "2026-09-03T16:39:06+00:00"
+
+[project.imogenos]
+name = "imogenos"
+path = "/Users/jryear/Desktop/jr/jryear/imogenOS"
+remote = "github.com/jryear/ImogenOS"
+lifecycle = "dormant"
+runtime = "unknown"
+last_verified = "2026-09-03T16:39:06+00:00"
+
+[project.junior]
+name = "junior"
+path = "/Users/jryear/Junior"
+remote = "github.com/jryear/junior"
+lifecycle = "warm"
+runtime = "orca"
+last_verified = "2026-09-03T16:39:06+00:00"
+
+[project.merca-platform]
+name = "merca-platform"
+path = "/Users/jryear/mercahq/merca-platform"
+remote = "github.com/mercahq/merca-platform"
+lifecycle = "warm"
+runtime = "orca"
+last_verified = "2026-09-03T16:39:06+00:00"
+
+[project.mlx-ocr-eob]
+name = "mlx-ocr-eob"
+path = "/Users/jryear/Desktop/projects/NativeOCR"
+remote = "github.com/jryear/mlx-ocr-eob"
+lifecycle = "warm"
+runtime = "unknown"
+last_verified = "2026-09-03T16:39:06+00:00"
+
+[project.moee-mose]
+name = "moee-mose"
+path = "/Users/jryear/Desktop/projects/eigen"
+remote = "github.com/jryear/MoEE-MoSE"
+lifecycle = "dormant"
+runtime = "unknown"
+last_verified = "2026-09-03T16:39:06+00:00"
+
+[project.ops]
+name = "ops"
+path = "/Users/jryear/dev/agents/ops"
+remote = "github.com/jryear/ops"
+lifecycle = "warm"
+runtime = "unknown"
+last_verified = "2026-09-03T16:39:06+00:00"
+
+[project.safety-kernel]
+name = "safety-kernel"
+path = "/Users/jryear/Desktop/projects/robot"
+remote = "github.com/jryear/safety-kernel"
+lifecycle = "warm"
+runtime = "orca"
+last_verified = "2026-09-03T16:39:06+00:00"
+
+[project.saturn-exchange-platform]
+name = "saturn-exchange-platform"
+path = "/Users/jryear/Desktop/SaturnDB/saturn-exchange-platform"
+remote = "github.com/jryear/saturn-exchange-platform"
+lifecycle = "warm"
+runtime = "orca"
+last_verified = "2026-09-03T16:39:06+00:00"
+
+[project.saturn-launch]
+name = "saturn-launch"
+path = "/Users/jryear/Desktop/projects/saturnX/launch-saturn-v1"
+remote = "github.com/jryear/Saturn-launch"
+lifecycle = "warm"
+runtime = "orca"
+last_verified = "2026-09-03T16:39:06+00:00"
+
+[project.saturn-office]
+name = "saturn-office"
+path = "/Users/jryear/Desktop/projects/saturn-office"
+remote = "github.com/jryear/saturn-office"
+lifecycle = "warm"
+runtime = "orca"
+last_verified = "2026-09-03T16:39:06+00:00"
+
+[project.saturndb-merca-platform]
+name = "saturndb-merca-platform"
+path = "/Users/jryear/Desktop/SaturnDB/tradewell"
+remote = "github.com/mercahq/merca-platform"
+lifecycle = "warm"
+runtime = "orca"
+last_verified = "2026-09-03T16:39:06+00:00"
+
+[project.saturnx-onboarding]
+name = "saturnx-onboarding"
+path = "/Users/jryear/Desktop/projects/saturnX/onboarding"
+remote = "github.com/jryear/saturnx-onboarding"
+lifecycle = "warm"
+runtime = "unknown"
+last_verified = "2026-09-03T16:39:06+00:00"
+
+[project.seed]
+name = "seed"
+path = "/Users/jryear/seed"
+remote = "github.com/jryear/seed"
+lifecycle = "warm"
+runtime = "unknown"
+last_verified = "2026-09-03T16:39:06+00:00"
+
+[project.sleepy-auction]
+name = "sleepy-auction"
+path = "/Users/jryear/dev/labs/sleepy-auction"
+remote = "github.com/jryear/sleepy-auction"
+lifecycle = "warm"
+runtime = "unknown"
+last_verified = "2026-09-03T16:39:06+00:00"
+
+[project.stable-moe]
+name = "stable-moe"
+path = "/Users/jryear/Desktop/jr/jryear/moe-routing"
+remote = "github.com/jryear/stable-moe"
+lifecycle = "dormant"
+runtime = "unknown"
+last_verified = "2026-09-03T16:39:06+00:00"
