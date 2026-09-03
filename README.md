@@ -4,11 +4,20 @@ Shared operator primitives for this machine. One implementation, called the same
 way by Claude, Codex, Orca, Kiki, a shell alias or a cron job.
 
 ```
-~/dev/agents/ops/ops <verb> [--json] [--quiet]
+ops <verb> [--json] [--quiet]     # ~/.local/bin/ops -> this repo's ./ops
+ops                               # no verb: prints help and the verb list
 ```
 
 Stdlib-only Python, no install step. Read-only unless a destructive flag is
 passed explicitly.
+
+Installed as a **symlink** on `PATH`, not a shell alias: an alias exists only
+inside interactive zsh, so scripts, cron, Codex and Orca would not see it. The
+point of this package is that every caller resolves the same implementation.
+
+```sh
+ln -sf ~/dev/agents/ops/ops ~/.local/bin/ops
+```
 
 ## Verbs
 
@@ -96,6 +105,27 @@ the runtimes stop agreeing about the machine.
 - **macOS indexers are one finding, not several leaks.** After a large change on
   disk, `fileproviderd` and `mds_stores` saturate cores for hours. That is the OS
   digesting work, and suggesting `ops reap` for it is actively wrong.
+- **`origin` identifies a repo; *any* reachable remote makes it durable.** Those
+  are different questions and conflating them cost real accuracy.
+  `discover` used to take the first remote git listed, which is alphabetical, so
+  adding a `backup` remote silently made it look canonical. Meanwhile the
+  durability check only looked at `origin` — which would call a repo unbacked
+  forever if it deliberately keeps a dead origin for provenance, exactly what
+  `bridge-agent-workspace` does.
+- **Never compare against a Hugging Face cache without `find -L`.** The cache
+  stores real files in `blobs/` and exposes them as symlinks under `snapshots/`.
+  `find -type f` does not follow symlinks, so it finds no weights at all and
+  every comparison returns the hash of empty input. That read as "duplicate" and
+  nearly deleted 17 GB of models that existed nowhere else. Verify by content
+  signature, per file, and only trust an exact match.
+- **The identity-collision finding must not conclude.** Two checkouts sharing a
+  remote can mean one product evolved into the other, one is an old checkout, a
+  remote was repointed by accident, one directory is a historical alias, or two
+  divergent histories are aimed at one repository. Only the last is dangerous
+  and only a human can choose. Tip containment does not settle it: it says
+  nothing about uncommitted work or which checkout a running service points at,
+  and in the live case those pointed the other way. `tests/test_registry.py`
+  pins this with a list of verdict phrases that must not appear.
 
 ## Tests
 

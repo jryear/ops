@@ -22,6 +22,15 @@ lifecycle = "warm"
 runtime = "unknown"
 last_verified = "2026-09-03T16:39:06+00:00"
 
+[project.design-studio]
+name = "design-studio"
+path = "/Users/jryear/dev/design/design-studio"
+remote = "github.com/jryear/design-studio"
+lifecycle = "warm"
+runtime = "none"
+description = "Persistent human-AI product design studio for reference anatomy, taste memory, deterministic mock environments, and high-fidelity interaction design."
+last_verified = "2026-09-03T20:50:21+00:00"
+
 [project.eigen-ucie]
 name = "eigen-ucie"
 path = "/Users/jryear/Desktop/jr/jryear/ucie/eigen"
