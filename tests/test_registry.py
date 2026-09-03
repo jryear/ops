@@ -96,6 +96,52 @@ check("plan pushes before it registers",
       < p["steps"].index("register in registry.toml as lifecycle=warm"), True)
 
 print()
+print("=== identity collision reports, it does not conclude ===")
+# Zack's constraint: a shared remote has five plausible causes and only a human
+# can choose among them. The finding must state graph facts and stop. These
+# words are verdicts that crept in once and must not come back.
+VERDICTS = ("stale checkout", "is a clone", "not a fork",
+            "duplicate of", "safe to delete", "should be removed")
+
+# The disclaimer legitimately contains "canonical"; strip it before scanning so
+# the check tests the factual half, not the sentence that exists to disclaim.
+DISCLAIMER = "Git cannot settle which is canonical"
+def facts(t):
+    return t.split(DISCLAIMER)[0]
+
+import tempfile as _tf, subprocess as _sp, os as _os
+
+def _repo(d, commits, salt=""):
+    # `salt` keeps two temp repos from producing byte-identical commits, which
+    # git would give the same SHA -- making a "separate histories" test silently
+    # compare a repo against itself.
+    _sp.run(["git", "init", "-q", "-b", "main", d], check=True)
+    for i in range(commits):
+        open(_os.path.join(d, f"f{i}.txt"), "w").write(f"{salt}{i}")
+        _sp.run(["git", "-C", d, "add", "-A"], check=True)
+        _sp.run(["git", "-C", d, "-c", "user.email=t@t", "-c", "user.name=t",
+                 "commit", "-q", "-m", f"c{i}"], check=True)
+
+with _tf.TemporaryDirectory() as d:
+    a, b = _os.path.join(d, "a"), _os.path.join(d, "b")
+    _os.makedirs(a); _repo(a, 3, "alpha-")
+    _sp.run(["git", "clone", "-q", a, b], check=True)          # b is contained in a
+    txt = reg._lineage({"alpha": a, "beta": b}, ["alpha", "beta"])
+    check("states the shared root", "Same root commit" in txt, True)
+    check("names what git cannot settle", "cannot settle which is canonical" in txt, True)
+    for v in VERDICTS:
+        check(f"does not conclude {v!r}", v in facts(txt), False)
+    check("does not declare a winner", "canonical" in facts(txt), False)
+
+    # Divergent roots is the dangerous case and must be called out as such.
+    c = _os.path.join(d, "c"); _os.makedirs(c); _repo(c, 2, "gamma-")
+    txt2 = reg._lineage({"alpha": a, "gamma": c}, ["alpha", "gamma"])
+    check("separate histories are flagged", "root commits differ" in txt2, True)
+    check("still refuses to pick a winner",
+          any(v in facts(txt2) for v in VERDICTS), False)
+
+print()
+
 if FAILS:
     print(f"{len(FAILS)} FAILED: {', '.join(FAILS)}")
     sys.exit(1)

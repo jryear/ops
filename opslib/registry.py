@@ -268,13 +268,21 @@ def derive(entries: dict[str, Entry] | None = None) -> dict:
 # --------------------------------------------------------------------------
 
 def _lineage(paths: dict[str, str], names: list[str]) -> str:
-    """What can be established locally about two checkouts sharing a remote.
+    """State what git can establish about two checkouts sharing a remote. Stop there.
 
-    Deliberately descriptive. A shared remote has several possible causes --
-    one repo grew out of the other, one is a stale checkout, one was repointed
-    by accident, or two genuinely divergent histories are aimed at the same
-    place. Only the last is dangerous, and git can tell them apart, so state
-    what is true and leave the decision alone.
+    A shared remote has at least five plausible causes: one product evolved into
+    the other; one is an old checkout of the same product; a remote was
+    repointed by accident; one directory is a historical alias; or two genuinely
+    divergent histories are being pushed at one canonical repository. Only the
+    last is dangerous.
+
+    Git can narrow that set but cannot close it. Containment of a tip says
+    nothing about uncommitted work, about which checkout a running service
+    points at, or about which one the team treats as canonical -- and in the
+    live case all three of those pointed in a different direction than the
+    commit graph did. So this reports the graph facts and names what remains
+    open. Choosing among the five is a reconciliation task with a human in it,
+    not something a scan should decide.
     """
     if len(names) != 2:
         return "Inspect lineage before changing anything."
@@ -294,23 +302,33 @@ def _lineage(paths: dict[str, str], names: list[str]) -> str:
             ["git", "-C", p, "cat-file", "-e", commit],
             capture_output=True).returncode == 0
 
+    def dirty(p):
+        return len(_cmd(["git", "-C", p, "status", "--porcelain"], 20).splitlines())
+
+    unsettled = (" Git cannot settle which is canonical: it says nothing about "
+                 "uncommitted work, about which checkout running services point "
+                 "at, or about which one the team treats as authoritative.")
+
     if root(a) != root(b):
-        return ("Their root commits differ, so these are genuinely separate "
-                "histories aimed at one remote - the case worth care.")
+        return ("Their root commits differ, so these are separate histories "
+                "aimed at one remote - the case that most warrants care." + unsettled)
+
     ta, tb = tip(a), tip(b)
     a_has_b, b_has_a = has(a, tb), has(b, ta)
-    if a_has_b and not b_has_a:
-        return (f"Same root commit, and {names[0]} already contains "
-                f"{names[1]}'s tip - so {names[1]} is a stale checkout with no "
-                f"unique history, not a fork.")
-    if b_has_a and not a_has_b:
-        return (f"Same root commit, and {names[1]} already contains "
-                f"{names[0]}'s tip - so {names[0]} is a stale checkout with no "
-                f"unique history, not a fork.")
+    da, db_ = dirty(a), dirty(b)
+    wip = (f" Uncommitted: {names[0]} {da} file(s), {names[1]} {db_} file(s) - "
+           f"none of it in the commit graph above.") if (da or db_) else ""
+
     if a_has_b and b_has_a:
-        return "Same root commit and identical tips - one is a plain duplicate."
-    return ("Same root commit but neither contains the other's tip - they have "
-            "diverged and both hold unique commits.")
+        return f"Same root commit and identical tips." + wip + unsettled
+    if a_has_b:
+        return (f"Same root commit; {names[0]} contains {names[1]}'s tip, so "
+                f"{names[1]} holds no commits {names[0]} lacks." + wip + unsettled)
+    if b_has_a:
+        return (f"Same root commit; {names[1]} contains {names[0]}'s tip, so "
+                f"{names[0]} holds no commits {names[1]} lacks." + wip + unsettled)
+    return ("Same root commit but neither contains the other's tip - both hold "
+            "unique commits." + wip + unsettled)
 
 
 def reconcile() -> Report:
