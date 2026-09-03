@@ -38,6 +38,14 @@ lifecycle = "warm"
 runtime = "unknown"
 last_verified = "2026-09-03T16:39:06+00:00"
 
+[project.gobird-travel]
+name = "gobird-travel"
+remote = "github.com/jryear/gobird-travel"
+lifecycle = "dormant"
+runtime = "orca"
+description = "GoBird Travel"
+last_verified = "2026-09-03T17:48:31+00:00"
+
 [project.graph-doctor]
 name = "graph-doctor"
 path = "/Users/jryear/Junior/graph-doctor"
@@ -114,9 +122,10 @@ last_verified = "2026-09-03T16:39:06+00:00"
 name = "merca-platform"
 path = "/Users/jryear/mercahq/merca-platform"
 remote = "github.com/mercahq/merca-platform"
-lifecycle = "warm"
+lifecycle = "active"
 runtime = "orca"
-last_verified = "2026-09-03T16:39:06+00:00"
+description = "Merca - fork-owned execution"
+last_verified = "2026-09-03T17:48:31+00:00"
 
 [project.mlx-ocr-eob]
 name = "mlx-ocr-eob"
@@ -154,25 +163,36 @@ last_verified = "2026-09-03T16:39:06+00:00"
 name = "saturn-exchange-platform"
 path = "/Users/jryear/Desktop/SaturnDB/saturn-exchange-platform"
 remote = "github.com/jryear/saturn-exchange-platform"
-lifecycle = "warm"
+lifecycle = "active"
 runtime = "orca"
-last_verified = "2026-09-03T16:39:06+00:00"
+description = "Saturn Exchange"
+last_verified = "2026-09-03T17:48:31+00:00"
 
 [project.saturn-launch]
 name = "saturn-launch"
 path = "/Users/jryear/Desktop/projects/saturnX/launch-saturn-v1"
 remote = "github.com/jryear/Saturn-launch"
+lifecycle = "frozen"
+runtime = "orca"
+description = "Legacy Launch Saturn"
+last_verified = "2026-09-03T17:48:31+00:00"
+
+[project.saturn-lead-feeder]
+name = "saturn-lead-feeder"
+remote = "github.com/jryear/saturn-lead-feeder"
 lifecycle = "warm"
 runtime = "orca"
-last_verified = "2026-09-03T16:39:06+00:00"
+description = "Saturn Lead Feeder"
+last_verified = "2026-09-03T17:48:31+00:00"
 
 [project.saturn-office]
 name = "saturn-office"
 path = "/Users/jryear/Desktop/projects/saturn-office"
 remote = "github.com/jryear/saturn-office"
-lifecycle = "warm"
+lifecycle = "active"
 runtime = "orca"
-last_verified = "2026-09-03T16:39:06+00:00"
+description = "Saturn Office"
+last_verified = "2026-09-03T17:48:31+00:00"
 
 [project.saturndb-merca-platform]
 name = "saturndb-merca-platform"
@@ -188,7 +208,8 @@ path = "/Users/jryear/Desktop/projects/saturnX/onboarding"
 remote = "github.com/jryear/saturnx-onboarding"
 lifecycle = "warm"
 runtime = "unknown"
-last_verified = "2026-09-03T16:39:06+00:00"
+description = "Saturn Onboarding"
+last_verified = "2026-09-03T17:48:31+00:00"
 
 [project.seed]
 name = "seed"

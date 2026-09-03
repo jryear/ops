@@ -21,6 +21,23 @@ passed explicitly.
 | `newproj` | Create a project correctly, first time | network |
 | `registry` | `show` / `render` / `reconcile` the project index | ~4s / network |
 
+## Feature freeze
+
+**As of 3 September 2026 this is done.** The six verbs answer the six questions
+Phase 6 set out to answer, and that is the whole scope:
+
+> What needs my attention? · Is my work durable? · What's leaking? ·
+> Is my machine healthy? · How do I start something correctly? ·
+> What projects actually exist?
+
+From here, **Orca, Hermes and Saturn development create the requirement for the
+next `ops` feature — not imagination.** If you are about to add a verb because it
+sounds useful, that is the signal to stop. Fixing a verb that returns a wrong
+answer is always in scope; adding capability on speculation is not.
+
+The point of this layer is that it stays small enough to be trusted by five
+runtimes at once. A substrate that keeps growing stops being a substrate.
+
 ## Contract
 
 Every verb honours the same three rules, so a caller never needs to know which

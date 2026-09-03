@@ -149,7 +149,13 @@ def inspect(checkout: Path, is_worktree: bool) -> Repo:
         return r
 
     r.branch = _git(checkout, "rev-parse", "--abbrev-ref", "HEAD")
-    r.remote = (_git(checkout, "remote") or "").split("\n")[0]
+    # `origin` is what git and everyone else mean by "the remote". Taking the
+    # first name listed picks alphabetically, which silently made
+    # bridge-agent-workspace's `backup` remote look canonical the moment one was
+    # added. Whether a repo is *durable* is a different question, answered by
+    # registry._reachable() across every remote.
+    remotes = (_git(checkout, "remote") or "").split()
+    r.remote = "origin" if "origin" in remotes else (remotes[0] if remotes else "")
     if r.remote:
         r.remote_url = _git(checkout, "remote", "get-url", r.remote)
 

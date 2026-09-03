@@ -188,18 +188,36 @@ def _canonical_key(remote_url: str) -> str:
     return u[:-4] if u.endswith(".git") else u
 
 
-def _reachable(path: str) -> bool:
-    """Can we actually fetch from this checkout's origin? Network, so callers
-    should reach for it only after the cheap membership check has already
-    failed."""
+def _reachable(path: str) -> str:
+    """Name of the first remote we can actually fetch from, or "".
+
+    Checks *every* remote, not just origin. bridge-agent-workspace keeps a dead
+    `origin` on purpose -- it records who owned the history before access was
+    lost -- and pushes to a `backup` remote instead. A durability check that only
+    looks at origin would call that repo unbacked forever, which trains you to
+    ignore it.
+
+    Network, so callers should reach for this only after the cheap membership
+    check has already failed.
+    """
+    env = {**os.environ, "GIT_TERMINAL_PROMPT": "0"}
     try:
-        r = subprocess.run(["git", "-C", path, "ls-remote", "--exit-code",
-                            "origin", "HEAD"],
-                           capture_output=True, text=True, timeout=20,
-                           env={**os.environ, "GIT_TERMINAL_PROMPT": "0"})
-        return r.returncode == 0
+        names = subprocess.run(["git", "-C", path, "remote"],
+                               capture_output=True, text=True, timeout=10)
+        remotes = names.stdout.split() if names.returncode == 0 else []
     except (subprocess.SubprocessError, OSError):
-        return False
+        return ""
+    # origin first: it is right in the overwhelming majority of cases.
+    for name in sorted(remotes, key=lambda n: (n != "origin", n)):
+        try:
+            r = subprocess.run(["git", "-C", path, "ls-remote", "--exit-code",
+                                name, "HEAD"],
+                               capture_output=True, text=True, timeout=20, env=env)
+            if r.returncode == 0:
+                return name
+        except (subprocess.SubprocessError, OSError):
+            continue
+    return ""
 
 
 def derive(entries: dict[str, Entry] | None = None) -> dict:
@@ -224,6 +242,10 @@ def derive(entries: dict[str, Entry] | None = None) -> dict:
             "id": pid,
             "name": e.name or pid,
             "path": e.path,
+            # A project can legitimately exist as a remote with no checkout on
+            # this machine -- Orca manages several. That is different from a
+            # declared path having vanished, which is real drift.
+            "checked_out": bool(e.path),
             "lifecycle": e.lifecycle,
             "runtime": e.runtime,
             "description": e.description,
@@ -245,6 +267,52 @@ def derive(entries: dict[str, Entry] | None = None) -> dict:
 # verbs
 # --------------------------------------------------------------------------
 
+def _lineage(paths: dict[str, str], names: list[str]) -> str:
+    """What can be established locally about two checkouts sharing a remote.
+
+    Deliberately descriptive. A shared remote has several possible causes --
+    one repo grew out of the other, one is a stale checkout, one was repointed
+    by accident, or two genuinely divergent histories are aimed at the same
+    place. Only the last is dangerous, and git can tell them apart, so state
+    what is true and leave the decision alone.
+    """
+    if len(names) != 2:
+        return "Inspect lineage before changing anything."
+    a, b = (paths.get(n, "") for n in names)
+    if not a or not b:
+        return "Inspect lineage before changing anything."
+
+    def root(p):
+        out = _cmd(["git", "-C", p, "rev-list", "--max-parents=0", "HEAD"], 20)
+        return out.strip().split("\n")[-1] if out.strip() else ""
+
+    def tip(p):
+        return _cmd(["git", "-C", p, "rev-parse", "HEAD"], 10).strip()
+
+    def has(p, commit):
+        return bool(commit) and subprocess.run(
+            ["git", "-C", p, "cat-file", "-e", commit],
+            capture_output=True).returncode == 0
+
+    if root(a) != root(b):
+        return ("Their root commits differ, so these are genuinely separate "
+                "histories aimed at one remote - the case worth care.")
+    ta, tb = tip(a), tip(b)
+    a_has_b, b_has_a = has(a, tb), has(b, ta)
+    if a_has_b and not b_has_a:
+        return (f"Same root commit, and {names[0]} already contains "
+                f"{names[1]}'s tip - so {names[1]} is a stale checkout with no "
+                f"unique history, not a fork.")
+    if b_has_a and not a_has_b:
+        return (f"Same root commit, and {names[1]} already contains "
+                f"{names[0]}'s tip - so {names[0]} is a stale checkout with no "
+                f"unique history, not a fork.")
+    if a_has_b and b_has_a:
+        return "Same root commit and identical tips - one is a plain duplicate."
+    return ("Same root commit but neither contains the other's tip - they have "
+            "diverged and both hold unique commits.")
+
+
 def reconcile() -> Report:
     """Report drift between the index and reality. Never repairs silently."""
     rep = Report(verb="registry")
@@ -259,7 +327,17 @@ def reconcile() -> Report:
         "github_repos": len(gh),
     }
 
+    not_local = [r["name"] for r in d["rows"] if not r["checked_out"]]
+    if not_local:
+        rep.notes.append(
+            f"{len(not_local)} project(s) registered with no checkout on this "
+            f"machine: {', '.join(sorted(not_local))}"
+        )
+        rep.checked["not_checked_out"] = len(not_local)
+
     for row in d["rows"]:
+        if not row["checked_out"]:
+            continue
         if not row["exists"]:
             rep.add(ACTION, "registry.path_missing", row["name"],
                     f"registered at {row['path']}, which is not a git checkout",
@@ -271,15 +349,21 @@ def reconcile() -> Report:
             # it. Reachability costs network, so it lives here instead -- but a
             # remote that does not resolve is the same as no remote, and
             # bridge-agent-workspace's 82 commits were exactly that.
-            reachable = _reachable(row["path"])
-            if reachable:
+            via = _reachable(row["path"])
+            if via and via != "origin":
+                rep.notes.append(
+                    f"{row['name']}: origin ({row['remote']}) does not resolve, "
+                    f"but history is reachable via the '{via}' remote"
+                )
+                continue
+            if via:
                 continue
             sev = ACTION if row["commits"] > 1 else WARN
             rep.add(sev, "registry.remote_gone", row["name"],
-                    f"remote {row['remote']} does not resolve and cannot be "
-                    f"fetched - {row['commits']} commits exist only on this disk",
-                    "Re-point it at a remote you control: "
-                    "gh repo create --private --source . --push",
+                    f"no remote resolves - {row['commits']} commits exist only "
+                    f"on this disk",
+                    "Add a remote you control: gh repo create --private "
+                    "&& git remote add backup <url> && git push backup --all",
                     {"id": row["id"], "path": row["path"]})
         if not row["remote"]:
             rep.add(ACTION, "registry.no_remote", row["name"],
@@ -293,14 +377,17 @@ def reconcile() -> Report:
     for row in d["rows"]:
         if row["remote"]:
             by_remote.setdefault(row["remote"], []).append(row["name"])
+    paths = {row["name"]: row["path"] for row in d["rows"]}
     for remote, names in sorted(by_remote.items()):
         if len(names) > 1:
-            rep.add(WARN, "registry.remote_shared", ", ".join(sorted(names)),
-                    f"{len(names)} checkouts claim {remote}; only one can be "
-                    f"canonical and the others are clones",
-                    "Decide which is canonical; give the clones their own "
-                    "remote or drop them from the registry.",
-                    {"remote": remote, "projects": sorted(names)})
+            names = sorted(names)
+            rep.add(WARN, "registry.identity_collision", ", ".join(names),
+                    f"{len(names)} checkouts push to {remote}. "
+                    + _lineage(paths, names),
+                    "Reconciliation task, not a rename. Establish which "
+                    "history is canonical before changing any remote.",
+                    {"remote": remote, "projects": names,
+                     "lineage": _lineage(paths, names)})
 
     # Durable local work the index has never heard of. Worktrees are excluded:
     # they belong to a registered repo, they are not projects in their own right.
@@ -334,7 +421,9 @@ def show(as_json: bool = False) -> int:
     print("-" * (w + 42))
     for r in rows:
         state = []
-        if not r["exists"]:
+        if not r["checked_out"]:
+            state.append("not checked out here")
+        elif not r["exists"]:
             state.append("MISSING")
         if not r["remote"]:
             state.append("no remote")
@@ -373,7 +462,9 @@ def render() -> str:
             path = r["path"].replace(str(HOME), "~")
             remote = r["remote"] or "*none*"
             state = []
-            if not r["exists"]:
+            if not r["checked_out"]:
+                state.append("*not checked out here*")
+            elif not r["exists"]:
                 state.append("**missing**")
             if r["unpushed"]:
                 state.append(f"{r['unpushed']} unpushed")
