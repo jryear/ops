@@ -21,7 +21,7 @@ than a risk: every store below is reproducible from the names recorded here.
 | `~/.ollama` |  52G | 11 manifests, all `ollama pull <name>` | Oct 21 2025 |
 | `~/.cache/huggingface` |  57G | 16 named repos, refetchable | 2026-08-28 |
 | `~/Models/frontier-local` |  26G | qwen3.5-9b qwen3.6-27b  | 2026-04-29 |
-| `~/Desktop/jr/jryear/ucie/eigen/models` |  22G | duplicate of the HF cache | 2025-08-29 |
+| `~/Desktop/jr/jryear/ucie/eigen/models` | 17G | see correction below | 2025-08-29 |
 
 ## Ollama models (`ollama pull` restores each)
 ```
@@ -63,9 +63,27 @@ TinyLlama/TinyLlama-1.1B-Chat-v1.0
 There is no pressure: the machine has ~310 GB free. So this is a question about
 intent, not space, and it splits cleanly in two.
 
-**Reclaimable with no judgement call —** `ucie/eigen/models` duplicates the
-Hugging Face cache byte for byte. It is 22 GB storing a second copy of files
-already on this disk. That is not a local-inference decision at all.
+**Correction, 2026-09-03.** An earlier version of this file claimed
+`ucie/eigen/models` was 22 GB of byte-identical duplicates of the Hugging Face
+cache. That was wrong, and acting on it would have destroyed 17 GB. Verifying
+each model by content signature -- size plus head/tail hash of every weight
+file, following the HF cache's internal symlinks from `snapshots/` into
+`blobs/` -- gives:
+
+| model | size | verdict |
+|---|---|---|
+| `qwen-coder` | 2.9 G | byte-identical duplicate — **removed** |
+| `tinyllama` | 2.1 G | byte-identical duplicate — **removed** |
+| `qwen-math` | 2.9 G | only copy; HF cache holds no weights for it |
+| `stablelm-mlx` | 1.1 G | only copy |
+| `phi-3.5-mini` | 7.1 G | different revision (2 weight files vs 3) |
+| `stablelm` | 6.1 G | different revision (2 vs 4) |
+
+The original check failed because `find -type f` does not follow symlinks, so it
+found no weights in the HF cache at all and every comparison came back as the
+hash of empty input. **When comparing against a Hugging Face cache, use
+`find -L`.** 5 GB was removed; the remaining 17 GB is refetchable by name but is
+not currently duplicated anywhere on this disk.
 
 **Everything else depends on one question:** do you intend to revive the
 orchestrator's local arm? If yes, keep `~/.ollama` and the `embeddinggemma-300m`
