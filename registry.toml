@@ -49,11 +49,12 @@ last_verified = "2026-09-03T16:39:06+00:00"
 
 [project.gobird-travel]
 name = "gobird-travel"
+path = "/Users/jryear/dev/labs/gobird-travel"
 remote = "github.com/jryear/gobird-travel"
 lifecycle = "dormant"
 runtime = "orca"
 description = "GoBird Travel"
-last_verified = "2026-09-03T17:48:31+00:00"
+last_verified = "2026-09-03T21:31:18+00:00"
 
 [project.graph-doctor]
 name = "graph-doctor"
@@ -78,6 +79,15 @@ remote = "github.com/outsourc-e/hermes-workspace"
 lifecycle = "warm"
 runtime = "unknown"
 last_verified = "2026-09-03T16:39:06+00:00"
+
+[project.hillside]
+name = "hillside"
+path = "/Users/jryear/dev/labs/hillside"
+remote = "github.com/jryear/hillside"
+lifecycle = "warm"
+runtime = "orca"
+description = "Distinct from hillside-recovered in ~/Documents."
+last_verified = "2026-09-03T21:31:18+00:00"
 
 [project.hillside-recovered]
 name = "hillside-recovered"
@@ -162,46 +172,47 @@ last_verified = "2026-09-03T16:39:06+00:00"
 
 [project.safety-kernel]
 name = "safety-kernel"
-path = "/Users/jryear/Desktop/projects/robot"
+path = "/Users/jryear/dev/labs/safety-kernel"
 remote = "github.com/jryear/safety-kernel"
 lifecycle = "warm"
 runtime = "orca"
-last_verified = "2026-09-03T16:39:06+00:00"
+last_verified = "2026-09-03T21:31:04+00:00"
 
 [project.saturn-exchange-platform]
 name = "saturn-exchange-platform"
-path = "/Users/jryear/Desktop/SaturnDB/saturn-exchange-platform"
+path = "/Users/jryear/dev/saturn/saturn-exchange-platform"
 remote = "github.com/jryear/saturn-exchange-platform"
 lifecycle = "active"
 runtime = "orca"
 description = "Saturn Exchange"
-last_verified = "2026-09-03T17:48:31+00:00"
+last_verified = "2026-09-03T21:31:04+00:00"
 
 [project.saturn-launch]
 name = "saturn-launch"
-path = "/Users/jryear/Desktop/projects/saturnX/launch-saturn-v1"
+path = "/Users/jryear/dev/saturn/launch-saturn-v1"
 remote = "github.com/jryear/Saturn-launch"
-lifecycle = "frozen"
+lifecycle = "active"
 runtime = "orca"
-description = "Legacy Launch Saturn"
-last_verified = "2026-09-03T17:48:31+00:00"
+description = "Launch Saturn"
+last_verified = "2026-09-03T21:43:12+00:00"
 
 [project.saturn-lead-feeder]
 name = "saturn-lead-feeder"
+path = "/Users/jryear/dev/saturn/Monday/saturn-lead-feeder"
 remote = "github.com/jryear/saturn-lead-feeder"
 lifecycle = "warm"
 runtime = "orca"
 description = "Saturn Lead Feeder"
-last_verified = "2026-09-03T17:48:31+00:00"
+last_verified = "2026-09-03T21:31:04+00:00"
 
 [project.saturn-office]
 name = "saturn-office"
-path = "/Users/jryear/Desktop/projects/saturn-office"
+path = "/Users/jryear/dev/saturn/saturn-office"
 remote = "github.com/jryear/saturn-office"
 lifecycle = "active"
 runtime = "orca"
 description = "Saturn Office"
-last_verified = "2026-09-03T17:48:31+00:00"
+last_verified = "2026-09-03T21:20:07+00:00"
 
 [project.saturndb-merca-platform]
 name = "saturndb-merca-platform"
@@ -243,3 +254,12 @@ remote = "github.com/jryear/stable-moe"
 lifecycle = "dormant"
 runtime = "unknown"
 last_verified = "2026-09-03T16:39:06+00:00"
+
+[project.trading]
+name = "trading"
+path = "/Users/jryear/dev/labs/trading"
+remote = "github.com/jryear/trading"
+lifecycle = "warm"
+runtime = "none"
+description = "trading (labs)"
+last_verified = "2026-09-03T21:57:15+00:00"
