@@ -8,11 +8,11 @@
 
 [project.bridge-agent-workspace]
 name = "bridge-agent-workspace"
-path = "/Users/jryear/Desktop/projects/bridge-agent-workspace"
-remote = "github.com/PatientPassLLC/bridge-agent-workspace"
-lifecycle = "dormant"
-runtime = "unknown"
-last_verified = "2026-09-03T16:39:06+00:00"
+remote = "github.com/jryear/bridge-agent-workspace-recovery"
+lifecycle = "frozen"
+runtime = "none"
+description = "Decommissioned 2026-09-03. Original remote PatientPassLLC/bridge-agent-workspace is gone; history and final working tree preserved in the recovery repo."
+last_verified = "2026-09-03T18:04:19+00:00"
 
 [project.dash-logic]
 name = "dash-logic"
