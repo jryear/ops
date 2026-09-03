@@ -1,0 +1,7 @@
+# ops project registry -- lifecycle only.
+#
+# This file is the source of truth for ONE thing: lifecycle. Everything
+# else is derived at read time from git, Orca and GitHub. Do not add
+# fields that another system already owns -- see opslib/registry.py.
+#
+# lifecycle: active (being worked on now; has Hermes/Orca coordination) | warm (canonical repo and remote, no coordination overhead) | dormant (not in progress; kept because it may return) | frozen (finished or superseded; kept for the record only)

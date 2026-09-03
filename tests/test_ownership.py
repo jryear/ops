@@ -6,6 +6,7 @@ from something actually observed on this machine, not invented.
 Run: python3 tests/test_ownership.py
 """
 
+import os
 import sys
 from pathlib import Path
 
@@ -79,6 +80,43 @@ check("recent, unowned, no leak signature -> unknown (not orphan)",
 got = ow.classify(p(command="mystery", etime_s=9 * 3600), resolve_cwd=False)
 check("old + unowned + no signature -> likely-orphaned (not definite)",
       got.classification, ow.LIKELY_ORPHAN)
+
+print()
+print("=== app-bundle helpers: Electron reparents by design ===")
+# Orca's own crashpad handler and Orca Helper both surfaced as 'likely-orphaned'
+# before this rule existed. They are helpers of a running app, not leaks.
+bundles = ow.running_app_bundles()
+if bundles:
+    b = next(iter(bundles))
+    got = ow.classify(p(command=f"{b}/Contents/Frameworks/Helper --flag"),
+                      resolve_cwd=False)
+    check("helper of a running app bundle -> active-owned",
+          got.classification, ow.OWNED)
+    check("evidence names the app", "helper process of running" in got.evidence, True)
+
+# But a known leak signature inside a bundle is still a leak: the stuck Sparkle
+# updater lives under /Applications/ChatGPT.app and must not be excused.
+got = ow.classify(
+    p(command="/Applications/ChatGPT.app/Contents/Frameworks/Sparkle.framework/"
+              "Versions/B/Autoupdate com.openai.codex",
+      etime_s=4 * 86400),
+    resolve_cwd=False)
+check("stuck Sparkle updater inside a running app -> still orphaned",
+      got.classification, ow.ORPHAN)
+
+got = ow.classify(p(command="/Applications/NotRunning.app/Contents/MacOS/x",
+                    etime_s=9 * 3600), resolve_cwd=False)
+check("helper of an app that is NOT running -> not owned",
+      got.classification != ow.OWNED, True)
+
+print()
+print("=== candidate filtering: system daemons must be excluded ===")
+sysproc = ow.Process(pid=1, ppid=1, etime_s=999,
+                     command="/usr/libexec/somedaemon", uid=os.getuid())
+check("system executable is filtered out",
+      ow.is_system_process(sysproc.command), True)
+check("user executable is not filtered",
+      ow.is_system_process("/Users/jryear/.local/bin/claude"), False)
 
 print()
 print("=== etime parsing ===")

@@ -164,6 +164,34 @@ def launchd_pids() -> frozenset[int]:
     return frozenset(pids)
 
 
+@functools.lru_cache(maxsize=1)
+def running_app_bundles() -> frozenset[str]:
+    """App bundles with at least one live process (`/Applications/X.app`).
+
+    Electron and Chromium apps spawn helpers (crashpad handlers, renderers)
+    that legitimately reparent to launchd while the app runs. Without this,
+    Orca's own helpers get reported as leaks -- observed, not hypothetical.
+    """
+    out = _run(["ps", "-Ao", "args="])
+    bundles = set()
+    for line in out.splitlines():
+        exe = line.split()[0] if line.split() else ""
+        if exe.startswith("/Applications/") and ".app/" in exe:
+            bundles.add(exe.split(".app/")[0] + ".app")
+    return frozenset(bundles)
+
+
+def app_bundle_owner(command: str) -> tuple[str, str]:
+    """Is this process a helper of a currently-running app bundle?"""
+    exe = command.split()[0] if command.split() else ""
+    if not exe.startswith("/Applications/") or ".app/" not in exe:
+        return "", ""
+    bundle = exe.split(".app/")[0] + ".app"
+    if bundle in running_app_bundles():
+        return "app-helper", f"helper process of running {Path(bundle).name}"
+    return "", ""
+
+
 def path_owner(path: str) -> tuple[str, str]:
     """Who owns this filesystem path? -> (owner, evidence)"""
     p = str(path)
@@ -289,7 +317,17 @@ def classify(p: Process, resolve_cwd: bool = True) -> Process:
         return p
 
     # 4. Reparented to launchd (ppid==1). NOT sufficient for orphan --
-    #    this is exactly where the near-miss would have happened. Check Orca.
+    #    this is exactly where the near-miss would have happened.
+
+    # 4a. A helper of a running app bundle. Electron/Chromium helpers reparent
+    #     by design; Orca's own crashpad handler surfaced here first.
+    owner, why = app_bundle_owner(p.command)
+    if owner and not known_leak:
+        p.classification = OWNED
+        p.evidence = why
+        return p
+
+    # 4b. Working inside something Orca is actively running.
     if resolve_cwd:
         p.cwd = _cwd_of(p.pid)
     if p.cwd:
@@ -318,5 +356,6 @@ def reset_cache() -> None:
     """Drop memoised Orca/launchd state (long-lived callers)."""
     for fn in (orca_terminals, orca_worktrees, orca_terminal_paths,
                orca_worktree_paths, orca_repo_paths, orca_orphaned_terminals,
-               orca_unreleased_workers, launchd_labels, launchd_pids):
+               orca_unreleased_workers, launchd_labels, launchd_pids,
+               running_app_bundles):
         fn.cache_clear()

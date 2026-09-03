@@ -79,6 +79,10 @@ def emit(report: Report, as_json: bool, quiet: bool = False) -> int:
         if not quiet:
             scope = ", ".join(f"{v} {k}" for k, v in report.checked.items())
             print(f"{report.verb}: nothing needs attention" + (f" ({scope})" if scope else ""))
+            # Notes carry context that is most useful precisely when there are
+            # no findings -- e.g. reconcile's "25 local repos are unregistered".
+            for n in report.notes:
+                print(f"note: {n}")
         return report.exit_code
 
     width = 78
