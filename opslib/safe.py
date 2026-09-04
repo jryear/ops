@@ -98,11 +98,25 @@ def classify(repo: discover.Repo, owned_paths: set[str]) -> tuple[str, str, str]
         return (EXPECTED,
                 f"{repo.unpushed} unpushed commit(s), recently active", "")
 
-    # 4. Uncommitted-only changes: real, but git can still see them locally.
+    # 4. Unbacked content: untracked or modified files whose bytes exist only
+    #    here. Deletions are excluded on purpose -- `discover` counts them
+    #    separately because their content is still in history and recoverable
+    #    with a checkout. Lumping them in reported 663 at-risk files on this
+    #    machine when the real number was 135.
     if repo.dirty and age is not None and age > STALE_DAYS:
+        extra = (f" (plus {repo.deleted} uncommitted deletion(s), recoverable "
+                 f"from history)") if repo.deleted else ""
         return (AT_RISK,
-                f"{repo.dirty} uncommitted file(s) in a checkout idle {age:.0f}d",
-                "Commit or discard; uncommitted work is invisible to every backup.")
+                f"{repo.dirty} unbacked file(s) in a checkout idle {age:.0f}d"
+                + extra,
+                "Commit or discard; this content exists nowhere else.")
+
+    # Deletions alone are not a durability risk -- nothing is lost -- but a
+    # stale checkout full of them is a cleanup signal worth naming once.
+    if repo.deleted and age is not None and age > STALE_DAYS:
+        return (EXPECTED,
+                f"{repo.deleted} uncommitted deletion(s), idle {age:.0f}d - "
+                f"content still in history", "")
 
     return (HEALTHY, "synchronized", "")
 
@@ -127,7 +141,7 @@ def run(roots=None) -> Report:
         elif state == AT_RISK:
             rep.add(WARN, "repo.at_risk", _short(repo.path), evidence, action,
                     {"path": repo.path, "unpushed": repo.unpushed,
-                     "dirty": repo.dirty, "kind": repo.kind})
+                     "dirty": repo.dirty, "deleted": repo.deleted, "kind": repo.kind})
 
     rep.checked = {
         "checkouts": len(results),

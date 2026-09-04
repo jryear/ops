@@ -35,7 +35,7 @@ def iso(days_ago):
 def repo(**kw):
     base = dict(path="/tmp/x", kind="repo", branch="main", remote="origin",
                 remote_url="https://example/x", commits=10, unpushed=0, dirty=0,
-                last_commit=iso(1))
+                deleted=0, last_commit=iso(1))
     base.update(kw)
     return Repo(**base)
 
@@ -100,6 +100,24 @@ print()
 print("=== severity mapping reaches the report ===")
 from opslib.model import ACTION, WARN  # noqa: E402
 check("CRITICAL is action-required, not a warning", ACTION > WARN, True)
+
+print()
+print("=== deletions are not unbacked work ===")
+# imogenOS reported 535 "uncommitted files" of which 526 were deletions. Their
+# content is still in history, so counting them as at-risk overstated this
+# machine's exposure 5x. A durability check that cries wolf gets ignored.
+state, ev, act = safe.classify(repo(dirty=0, deleted=526, last_commit=iso(329)), OWNED)
+check("deletions alone -> not at-risk", state != safe.AT_RISK, True)
+check("evidence says content is still in history", "still in history" in ev, True)
+
+state, ev, _ = safe.classify(repo(dirty=9, deleted=526, last_commit=iso(329)), OWNED)
+check("mixed -> at-risk on the unbacked count", state, safe.AT_RISK)
+check("headline counts only unbacked", ev.startswith("9 unbacked"), True)
+check("deletions still disclosed", "526 uncommitted deletion" in ev, True)
+
+state, ev, _ = safe.classify(repo(dirty=16, deleted=0, last_commit=iso(371)), OWNED)
+check("pure unbacked content -> at-risk", state, safe.AT_RISK)
+check("no deletion clause when there are none", "deletion" in ev, False)
 
 print()
 if FAILS:

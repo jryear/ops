@@ -66,7 +66,8 @@ class Repo:
     remote_url: str = ""
     commits: int = 0
     unpushed: int = 0
-    dirty: int = 0
+    dirty: int = 0                 # unbacked: untracked, modified or added
+    deleted: int = 0               # deletions -- content is still in history
     last_commit: str = ""
     parent_repo: str = ""          # for worktrees: the repo owning the object store
     error: str = ""
@@ -170,7 +171,15 @@ def inspect(checkout: Path, is_worktree: bool) -> Repo:
         r.unpushed = r.commits
 
     status = _git(checkout, "status", "--porcelain")
-    r.dirty = len([l for l in status.split("\n") if l.strip()])
+    # Split unbacked content from deletions. A deleted-but-uncommitted file
+    # still has its content in git history and is recoverable with a checkout;
+    # counting it as work-at-risk overstated this machine's exposure ~5x
+    # (663 reported vs 135 real), and a durability check that cries wolf is a
+    # durability check that gets ignored.
+    lines = [l for l in status.split("\n") if l.strip()]
+    r.deleted = len([l for l in lines if l[:2].strip().startswith("D")
+                     or (len(l) > 1 and l[1] == "D")])
+    r.dirty = len(lines) - r.deleted
 
     r.last_commit = _git(checkout, "log", "-1", "--format=%cI")
     return r
