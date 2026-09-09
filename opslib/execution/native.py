@@ -22,9 +22,13 @@ class Orca:
     def rows(self, *args, key):
         result = self.call(*args)
         rows = result.get(key)
-        if not isinstance(rows, list) or not all(isinstance(x, dict) for x in rows) or result.get("truncated"):
+        page, host_scope = result.get("page") or {}, result.get("hostScope") or {}
+        if not isinstance(page, dict) or not isinstance(host_scope, dict):
+            raise Blocked("Orca inventory metadata is malformed")
+        if (not isinstance(rows, list) or not all(isinstance(x, dict) for x in rows)
+                or result.get("truncated") or page.get("hasMore")):
             raise Blocked("Orca observation incomplete")
-        if result.get("hostScope", {}).get("omittedHostIds"):
+        if host_scope.get("omittedHostIds"):
             raise Blocked("Orca execution hosts omitted from observation")
         return rows
 

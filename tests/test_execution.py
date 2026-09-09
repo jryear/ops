@@ -251,6 +251,8 @@ class ExecutionTests(unittest.TestCase):
             with self.store.lock("project:b"): pass
         with self.assertRaisesRegex(Blocked, "credential-bearing"):
             self.store.put({"access_token": "fixture-not-a-real-token"})
+        for value in (".", "..", "../escape", "/tmp/escape"):
+            with self.assertRaises(Blocked): self.store.events(value)
 
     def test_verification_sandbox_denies_source_writes_and_network(self):
         with self.assertRaises(Blocked):

@@ -51,14 +51,15 @@ and real disposable Git worktrees; it must not be described as live acceptance.
 ## Verification
 
 `python3 -m unittest discover -s tests -v` passed with host observation access:
-**40 unittest cases and 70 legacy assertions**. The sandbox denies launchctl access,
+**41 unittest cases and 70 legacy assertions**. The sandbox denies launchctl access,
 so host access is needed for the legacy ownership tests. Verification commands
 inside the tests use their own macOS sandbox, denying network and writes outside
 their own temporary scratch directory. Candidate source writes were refused.
 
 `git diff --check` passed. Gitleaks scanned the worktree with full redaction and
 reported no leaks. The private GitHub repository identity was freshly verified.
-See `live-evidence.json` for compact route observations and verification hashes;
+See `live-evidence.json` for compact route observations and the earlier 40-case
+verification hash, and `final-verification.json` for the final 41-case result;
 raw local test output is `~/.local/state/ops/execution/validation/tests-20260909.log`.
 
 | Acceptance case | Evidence boundary |

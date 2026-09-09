@@ -66,7 +66,7 @@ def git(path, *args):
 
 
 def safe_id(value):
-    if not isinstance(value, str) or not re.fullmatch(r"[A-Za-z0-9_.:-]{1,160}", value):
+    if not isinstance(value, str) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.:-]{0,159}", value):
         raise Blocked("invalid durable identity")
     return value
 
@@ -143,6 +143,8 @@ class Store:
 
     def events(self, attempt):
         safe_id(attempt)
+        if (self.root / "attempts").is_symlink() or (self.root / "attempts" / attempt).is_symlink():
+            raise Blocked("attempt evidence directory must not be a symlink")
         previous = None
         out = []
         for i, path in enumerate(sorted((self.root / "attempts" / attempt).glob("*.json"))):

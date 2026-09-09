@@ -9,9 +9,18 @@ from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from opslib.execution import policy, providers
 from opslib.execution.common import Blocked
+from opslib.execution.native import Orca
 
 
 class ProviderTests(unittest.TestCase):
+    def test_paginated_or_truncated_ownership_inventory_is_not_complete(self):
+        for result in ({"workers": [], "page": {"hasMore": True, "nextCursor": "next"}},
+                       {"workers": [], "truncated": True},
+                       {"workers": [], "page": ["malformed"]},
+                       {"workers": [], "hostScope": {"omittedHostIds": ["remote"]}}):
+            with patch.object(Orca, "call", return_value=result), self.assertRaises(Blocked):
+                Orca("/fixture/orca").workers()
+
     def test_auth_catalog_and_effort_fail_closed(self):
         for auth, models, expected in [
             ("apiKey", [{"model": "gpt-5.6-sol", "efforts": ["high"]}], "subscription authentication"),

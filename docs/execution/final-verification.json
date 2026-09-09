@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "recorded_at": 1788993864.613817,
+  "command": "python3 -m unittest discover -s tests -v",
+  "exit_code": 0,
+  "unittest_cases": 41,
+  "legacy_assertions": 70,
+  "observation_source": "host execution command receipt; final malformed-pagination cases retested with python3 tests/test_execution_providers.py",
+  "new_failure_injection": [
+    "incomplete paginated native inventory",
+    "omitted host inventory",
+    "malformed native pagination metadata",
+    "evidence path traversal"
+  ],
+  "independent_review": "not performed",
+  "live_provider_execution": false
+}
