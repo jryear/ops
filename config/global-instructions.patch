@@ -1,0 +1,18 @@
+--- ~/.claude/CLAUDE.md
++++ ~/.claude/CLAUDE.md
+@@ -1,0 +2,3 @@
++
++Mirrors `~/.claude/CLAUDE.md`. Keep the two in sync — Claude Code and Codex both
++work on this machine and should share one picture of it.
+@@ -36 +39,3 @@
+-  carry live auth tokens. They are gitignored globally — keep it that way.
++  carry live auth tokens. They are gitignored globally — keep it that way. This
++  applies directly to Codex: your own rollout logs under `~/.codex/sessions/`
++  contain auth material and must never be committed.
+@@ -56,0 +62,6 @@
++
++## Note on `config.toml`
++
++The `[projects."..."]` entries still point at `~/Desktop/...` paths. Those are
++being migrated to `~/dev/`; update an entry when you next work in that project
++rather than leaving a stale path behind.

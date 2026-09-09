@@ -1,0 +1,169 @@
+schema_version = 1
+policy_version = "2026-09-09.1"
+applies_to = "new-runs-only"
+
+[constraints]
+paid_fallback = false
+automatic_substitution = false
+credential_changes = false
+required_observations = true
+
+[routes.principal]
+role = "principal"
+task_class = "intent"
+provider = "codex"
+model = "gpt-5.6-sol"
+effort = "high"
+billing = "subscription-only"
+review = "independent"
+escalation = "decision"
+
+[routes.coordination]
+role = "coordinator"
+task_class = "coordination"
+provider = "codex"
+model = "gpt-5.6-sol"
+effort = "medium"
+billing = "subscription-only"
+review = "independent"
+escalation = "coordination_difficult"
+
+[routes.coordination_difficult]
+role = "coordinator"
+task_class = "difficult-coordination"
+provider = "codex"
+model = "gpt-5.6-sol"
+effort = "high"
+billing = "subscription-only"
+review = "independent"
+escalation = "decision"
+
+[routes.decision]
+role = "principal"
+task_class = "consequential-decision"
+provider = "codex"
+model = "gpt-6-astra"
+effort = "medium"
+billing = "subscription-only"
+review = "independent"
+escalation = "decision_high_risk"
+
+[routes.decision_high_risk]
+role = "principal"
+task_class = "high-risk-decision"
+provider = "codex"
+model = "gpt-6-astra"
+effort = "high"
+billing = "subscription-only"
+review = "independent"
+escalation = "decision_exceptional"
+
+[routes.decision_exceptional]
+role = "principal"
+task_class = "exceptional-decision"
+provider = "codex"
+model = "gpt-6-astra"
+effort = "xhigh"
+billing = "subscription-only"
+review = "independent"
+escalation = "decision_max"
+
+[routes.decision_max]
+role = "principal"
+task_class = "exceptional-max-decision"
+provider = "codex"
+model = "gpt-6-astra"
+effort = "max"
+billing = "subscription-only"
+review = "independent"
+escalation = "principal"
+
+[routes.complex]
+role = "implementer"
+task_class = "complex-implementation"
+provider = "codex"
+model = "gpt-5.6-sol"
+effort = "high"
+billing = "subscription-only"
+review = "cross-family"
+escalation = "decision"
+
+[routes.bounded]
+role = "implementer"
+task_class = "bounded-implementation"
+provider = "codex"
+model = "gpt-5.6-terra"
+effort = "medium"
+billing = "subscription-only"
+review = "independent"
+escalation = "bounded_high"
+
+[routes.bounded_high]
+role = "implementer"
+task_class = "difficult-bounded-implementation"
+provider = "codex"
+model = "gpt-5.6-terra"
+effort = "high"
+billing = "subscription-only"
+review = "independent"
+escalation = "complex"
+
+[routes.claude_implementation]
+role = "implementer"
+task_class = "claude-implementation"
+provider = "claude"
+model = "sonnet"
+effort = "medium"
+billing = "subscription-only"
+review = "cross-family"
+escalation = "decision"
+
+[routes.review]
+role = "reviewer"
+task_class = "difficult-review"
+provider = "claude"
+model = "opus"
+effort = "high"
+billing = "subscription-only"
+review = "read-only"
+escalation = "principal"
+
+[routes.review_claude]
+role = "reviewer"
+task_class = "claude-authored-review"
+provider = "codex"
+model = "gpt-5.6-sol"
+effort = "high"
+billing = "subscription-only"
+review = "read-only"
+escalation = "decision"
+
+[routes.mechanical]
+role = "implementer"
+task_class = "mechanical"
+provider = "codex"
+model = "gpt-5.6-luna"
+effort = "low"
+billing = "subscription-only"
+review = "independent"
+escalation = "mechanical_medium"
+
+[routes.mechanical_medium]
+role = "implementer"
+task_class = "mechanical-medium"
+provider = "codex"
+model = "gpt-5.6-luna"
+effort = "medium"
+billing = "subscription-only"
+review = "independent"
+escalation = "bounded"
+
+[routes.gemini_experimental]
+role = "implementer"
+task_class = "experimental-substantive"
+provider = "gemini"
+model = "gemini-3.8-flash"
+effort = "default"
+billing = "verified-no-paid-route"
+review = "cross-family"
+escalation = "principal"

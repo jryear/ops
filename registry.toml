@@ -1,7 +1,7 @@
-# ops project registry -- lifecycle only.
+# ops project registry -- lifecycle and explicit authority decisions.
 #
-# This file is the source of truth for ONE thing: lifecycle. Everything
-# else is derived at read time from git, Orca and GitHub. Do not add
+# Stores lifecycle, canonical selection and authority references. Current
+# Git/runtime facts are derived at read time. Do not add
 # fields that another system already owns -- see opslib/registry.py.
 #
 # lifecycle: active (being worked on now; has Hermes/Orca coordination) | warm (canonical repo and remote, no coordination overhead) | dormant (not in progress; kept because it may return) | frozen (finished or superseded; kept for the record only)
@@ -166,6 +166,11 @@ last_verified = "2026-09-03T16:39:06+00:00"
 name = "ops"
 path = "/Users/jryear/dev/agents/ops"
 remote = "github.com/jryear/ops"
+canonical_checkout = "/Users/jryear/dev/agents/ops"
+canonical_branch = "main"
+execution_authority_ref = "docs/EXECUTION-CONTRACT.md#ownership"
+integration_authority_ref = "docs/EXECUTION-CONTRACT.md#integration"
+integration_queue_board = "ops-execution"
 lifecycle = "warm"
 runtime = "unknown"
 last_verified = "2026-09-03T16:39:06+00:00"

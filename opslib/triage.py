@@ -49,70 +49,6 @@ def _git_findings(rep: Report) -> None:
     rep.notes.extend(sub.notes)
 
 
-def _orca_findings(rep: Report) -> None:
-    """Execution state Orca itself reports as anomalous."""
-    if not ow.orca_available():
-        rep.notes.append("orca CLI not found; execution signals skipped")
-        return
-
-    worktrees = ow.orca_worktrees()
-    rep.checked["orca_worktrees"] = len(worktrees)
-
-    for t in ow.orca_orphaned_terminals():
-        rep.add(
-            WARN, "orca.orphaned_terminal",
-            _short(t.get("worktreePath") or t.get("handle", "?")),
-            "Orca reports this terminal as orphaned",
-            "orca terminal close, or reattach if the work still matters.",
-            {"handle": t.get("handle")},
-        )
-
-    unreleased = ow.orca_unreleased_workers()
-    if unreleased:
-        rep.add(
-            WARN, "orca.unreleased_workers", f"{len(unreleased)} dispatch(es)",
-            "terminal=release_unknown - Orca could not confirm teardown",
-            "orca orchestration worker-release, once you have read any output worth keeping.",
-            {"contexts": list(unreleased[:10])},
-        )
-
-    # Unread output on a worktree with no live terminal = a worker finished and
-    # nobody looked. That is exactly "stuck work" in the original request.
-    for w in worktrees:
-        if w.get("isArchived"):
-            continue
-        if w.get("unread") and not (w.get("liveTerminalCount") or 0):
-            rep.add(
-                WARN, "orca.unread_finished", _short(w.get("path", "?")),
-                f"unread output on '{w.get('branch','?')}' with no live terminal",
-                "orca terminal read, then release the worker.",
-                {"path": w.get("path"), "branch": w.get("branch")},
-            )
-
-
-def _junior_findings(rep: Report) -> None:
-    """Coordination state: blocked tasks and lapsed authority."""
-    if not junior.available():
-        return
-    rep.checked["junior_projects"] = len(junior.projects())
-
-    for w in junior.expired_leases():
-        rep.add(
-            ACTION, "junior.expired_lease", f"worker {w['id'][:16]}",
-            f"status={w['status']} but lease expired {w.get('lease_expires_at','?')}",
-            "Resolve or cancel the task; its authority to act has lapsed.",
-            {"worker": w["id"], "task": w.get("task_id")},
-        )
-
-    for t in junior.blocked_tasks():
-        rep.add(
-            WARN, "junior.blocked_task", f"{t.get('project') or '?'}: {t['title'][:52]}",
-            f"task blocked since {t.get('updated_at','?')[:10]}",
-            "Unblock, or cancel if it is no longer wanted.",
-            {"task": t["id"]},
-        )
-
-
 def _process_findings(rep: Report) -> None:
     """Leaked processes -- ownership resolved before anything is called a leak."""
     procs = ow.list_processes()
@@ -152,12 +88,19 @@ def run(scope: str = "all") -> Report:
 
     if scope in ("all", "git"):
         _git_findings(rep)
-    if scope in ("all", "orca"):
-        _orca_findings(rep)
-    if scope in ("all", "junior"):
-        _junior_findings(rep)
+    if scope in ("all", "orca", "hermes", "execution"):
+        from .execution.observation import reconcile
+        reconcile(rep)
+    if scope == "junior":
+        rep.checked["junior_authority"] = "frozen-historical-only"
+        rep.checked["junior_counts"] = junior.counts()
+        rep.notes.append("Junior is frozen historical evidence; its old leases never authorize current task or process actions.")
     if scope in ("all", "process"):
-        _process_findings(rep)
+        try:
+            _process_findings(rep)
+            rep.checked["process_observation"] = "available"
+        except ow.ObservationUnavailable as exc:
+            ow.report_unavailable(rep, exc)
 
     rep.checked["elapsed_s"] = round(time.time() - started, 1)
     return rep

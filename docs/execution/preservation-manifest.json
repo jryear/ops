@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "captured_at": "2026-09-09T22:06:50.984284+00:00",
+  "source": "/Users/jryear/dev/agents/ops",
+  "base": "83d28e3e8202576e92296f4c876d33e130e52b6d",
+  "inherited_file_count": 50,
+  "incorporated_files": [
+    {
+      "path": "docs/EXECUTION-CONTRACT.md",
+      "sha256": "cdd3a5e992f221603aae81d4fa6b6a5ec9ec51ee7b801ab3b32b727f0c284012",
+      "bytes": 6172
+    },
+    {
+      "path": "tests/test_process_observation.py",
+      "sha256": "9ff0d4eabb72dd13f31dd62aca02194171311021f09e9a1e18f148d543ba9042",
+      "bytes": 8840
+    },
+    {
+      "path": "opslib/machine.py",
+      "sha256": "69b5f7200f27f52f4a3944b4f616cac12b8e5f0e6c888c76d46319de31ad2b9a",
+      "bytes": 8293
+    },
+    {
+      "path": "opslib/ownership.py",
+      "sha256": "2ec0a006f0b03d5e68b568e33abeac2de8cf5172d1ae44b4a3f86620cd624e23",
+      "bytes": 15458
+    },
+    {
+      "path": "opslib/reap.py",
+      "sha256": "9690136095752c3e3aeec339e306cb6b2de5db00aa3bd3b871b011fff3dde9cb",
+      "bytes": 7675
+    },
+    {
+      "path": "opslib/triage.py",
+      "sha256": "ae375589010d9389d53929c125e04be8c108216eb30fa1578cfcdbbb27fa386f",
+      "bytes": 5934
+    }
+  ]
+}

@@ -29,6 +29,7 @@ VERBS = {
     "machine": "Is this machine healthy enough to keep working",
     "newproj": "Create a project correctly, with a remote, first time",
     "registry": "Show or render the project registry",
+    "execution": "Validate and reconcile execution policy and evidence",
 }
 
 
@@ -50,7 +51,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     t = common(sub.add_parser("triage", help=VERBS["triage"]))
     t.add_argument("--scope", default="all",
-                   choices=["all", "git", "orca", "junior", "process"])
+                   choices=["all", "git", "orca", "hermes", "execution", "junior", "process"])
 
     s = common(sub.add_parser("safe", help=VERBS["safe"]))
     s.add_argument("--root", action="append", help="limit scan to these roots")
@@ -78,6 +79,8 @@ def build_parser() -> argparse.ArgumentParser:
     g.add_argument("action", nargs="?", default="show",
                    choices=["show", "render", "reconcile"])
     g.add_argument("--json", action="store_true")
+    from opslib.execution.cli import parser as execution_parser
+    execution_parser(sub)
     return p
 
 
@@ -116,6 +119,10 @@ def main(argv=None) -> int:
     if args.verb == "registry":
         from opslib import registry
         return registry.cli(args.action, as_json=args.json)
+
+    if args.verb == "execution":
+        from opslib.execution.cli import run
+        return run(args)
 
     return 0
 

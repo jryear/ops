@@ -1,0 +1,58 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "attempt_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_.:-]{1,160}$"
+    },
+    "sequence": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "recorded_at": {
+      "type": "number"
+    },
+    "kind": {
+      "enum": [
+        "prepared",
+        "dispatch_intent",
+        "task_created",
+        "dispatch_requested",
+        "dispatch_receipt",
+        "dispatch_unknown",
+        "observation",
+        "verification",
+        "review",
+        "integration_intent",
+        "integrated",
+        "recovery",
+        "reframe",
+        "blocked"
+      ]
+    },
+    "previous_sha256": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "data": {
+      "type": "object"
+    }
+  },
+  "required": [
+    "schema_version",
+    "attempt_id",
+    "sequence",
+    "recorded_at",
+    "kind",
+    "previous_sha256",
+    "data"
+  ],
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Ops append-only attempt event v1"
+}

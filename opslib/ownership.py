@@ -18,6 +18,7 @@ from __future__ import annotations
 import functools
 import json
 import os
+import re
 import subprocess
 import time
 from dataclasses import dataclass, asdict
@@ -49,6 +50,32 @@ def _run(cmd: list[str], timeout: int = 20) -> str:
         return r.stdout if r.returncode == 0 else ""
     except (subprocess.SubprocessError, OSError):
         return ""
+
+
+class ObservationUnavailable(RuntimeError):
+    """A required observation failed; absence must never stand in for evidence."""
+
+
+def observe_command(cmd: list[str], timeout: int = 20) -> str:
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+    except subprocess.TimeoutExpired as exc:
+        raise ObservationUnavailable(f"{cmd[0]} inspection timed out") from exc
+    except (subprocess.SubprocessError, OSError, UnicodeError) as exc:
+        raise ObservationUnavailable(f"{cmd[0]} inspection unavailable ({type(exc).__name__})") from exc
+    if result.returncode != 0:
+        raise ObservationUnavailable(f"{cmd[0]} inspection failed (exit {result.returncode})")
+    if not result.stdout.strip():
+        raise ObservationUnavailable(f"{cmd[0]} inspection returned empty output")
+    return result.stdout
+
+
+def report_unavailable(rep, exc: ObservationUnavailable, scope: str = "process") -> None:
+    from .model import WARN
+    rep.checked[f"{scope}_observation"] = "unavailable"
+    rep.add(WARN, f"{scope}.observation_unavailable", f"{scope} observation unavailable",
+            str(exc), "Restore inspection access and retry; missing observation is not zero activity.",
+            {"available": False})
 
 
 def orca_available() -> bool:
@@ -143,7 +170,7 @@ def orca_unreleased_workers() -> tuple[str, ...]:
 @functools.lru_cache(maxsize=1)
 def launchd_labels() -> frozenset[str]:
     """Labels launchd currently manages, so we never call its jobs orphans."""
-    out = _run(["launchctl", "list"])
+    out = observe_command(["launchctl", "list"])
     labels = set()
     for line in out.splitlines()[1:]:
         parts = line.split("\t")
@@ -155,11 +182,15 @@ def launchd_labels() -> frozenset[str]:
 @functools.lru_cache(maxsize=1)
 def launchd_pids() -> frozenset[int]:
     """PIDs launchd reports as its own running jobs."""
-    out = _run(["launchctl", "list"])
+    out = observe_command(["launchctl", "list"])
+    if not out.splitlines()[0].split() == ["PID", "Status", "Label"]:
+        raise ObservationUnavailable("launchctl inspection returned unusable output")
     pids = set()
     for line in out.splitlines()[1:]:
-        parts = line.split("\t")
-        if parts and parts[0].strip().isdigit():
+        parts = line.split()
+        if len(parts) != 3 or not (parts[0] == "-" or parts[0].isdigit()):
+            raise ObservationUnavailable("launchctl inspection returned unusable rows")
+        if parts[0].isdigit():
             pids.add(int(parts[0].strip()))
     return frozenset(pids)
 
@@ -172,10 +203,9 @@ def running_app_bundles() -> frozenset[str]:
     that legitimately reparent to launchd while the app runs. Without this,
     Orca's own helpers get reported as leaks -- observed, not hypothetical.
     """
-    out = _run(["ps", "-Ao", "args="])
     bundles = set()
-    for line in out.splitlines():
-        exe = line.split()[0] if line.split() else ""
+    for process in list_processes():
+        exe = process.command.split()[0]
         if exe.startswith("/Applications/") and ".app/" in exe:
             bundles.add(exe.split(".app/")[0] + ".app")
     return frozenset(bundles)
@@ -195,14 +225,18 @@ def app_bundle_owner(command: str) -> tuple[str, str]:
 def path_owner(path: str) -> tuple[str, str]:
     """Who owns this filesystem path? -> (owner, evidence)"""
     p = str(path)
-    for t in orca_terminal_paths():
-        if p == t or p.startswith(t.rstrip("/") + "/"):
+    for terminal in observed_orca_rows(("terminal", "list"), "terminals"):
+        t = terminal.get("worktreePath")
+        if t and not terminal.get("orphaned") and (p == t or p.startswith(t.rstrip("/") + "/")):
             return "orca-terminal", f"live Orca terminal at {t}"
-    for w in orca_worktree_paths():
-        if p == w or p.startswith(w.rstrip("/") + "/"):
+    for worktree in observed_orca_rows(("worktree", "ps"), "worktrees"):
+        w = worktree.get("path")
+        if (w and (worktree.get("liveTerminalCount") or 0) > 0
+                and not worktree.get("isArchived") and (p == w or p.startswith(w.rstrip("/") + "/"))):
             return "orca-worktree", f"Orca worktree with live workers at {w}"
-    for r in orca_repo_paths():
-        if p == r or p.startswith(r.rstrip("/") + "/"):
+    for repo in observed_orca_rows(("repo", "list"), "repos"):
+        r = repo.get("path")
+        if r and (p == r or p.startswith(r.rstrip("/") + "/")):
             return "orca-repo", f"registered Orca repo at {r}"
     return "", ""
 
@@ -253,32 +287,58 @@ def _etime_seconds(etime: str) -> int:
 
 
 def _cwd_of(pid: int) -> str:
-    out = _run(["lsof", "-a", "-p", str(pid), "-d", "cwd", "-Fn"], timeout=8)
+    out = observe_command(["lsof", "-a", "-p", str(pid), "-d", "cwd", "-Fn"], timeout=8)
     for line in out.splitlines():
         if line.startswith("n"):
             return line[1:]
-    return ""
+    raise ObservationUnavailable("lsof inspection returned no usable working directory")
 
 
 def list_processes(patterns: tuple[str, ...] = ()) -> list[Process]:
     """Snapshot processes. `patterns` narrows by command substring."""
-    out = _run(["ps", "-Ao", "uid=,pid=,ppid=,etime=,args="])
+    out = observe_command(["ps", "-Ao", "uid=,pid=,ppid=,etime=,args="])
     procs = []
     for line in out.splitlines():
+        if not line.strip():
+            continue
         parts = line.split(None, 4)
-        if len(parts) < 5:
-            continue
+        if (len(parts) != 5 or not re.fullmatch(r"-?\d+", parts[0])
+                or not all(x.isdigit() for x in parts[1:3])
+                or int(parts[1]) < 0
+                or not re.fullmatch(r"(?:\d+-)?(?:\d+:)?\d{2}:\d{2}", parts[3])):
+            raise ObservationUnavailable("ps inspection returned unusable process rows")
         uid_s, pid_s, ppid_s, etime, args = parts
-        if not pid_s.isdigit():
-            continue
         if patterns and not any(pat in args for pat in patterns):
             continue
         procs.append(Process(
             pid=int(pid_s), ppid=int(ppid_s),
-            etime_s=_etime_seconds(etime), command=args,
-            uid=int(uid_s) if uid_s.isdigit() else -1,
+            etime_s=_etime_seconds(etime), command=args, uid=int(uid_s),
         ))
     return procs
+
+
+@functools.lru_cache(maxsize=3)
+def observed_orca_rows(args: tuple[str, ...], key: str) -> tuple[dict, ...]:
+    """Strict ownership lookup; other read-only adapters retain their API."""
+    raw = observe_command([ORCA, *args, "--json"], timeout=30)
+    try:
+        envelope = json.loads(raw)
+        rows = envelope.get("result", {}).get(key)
+        valid = (envelope.get("ok") is True and isinstance(rows, list)
+                 and all(isinstance(row, dict) for row in rows))
+    except (ValueError, AttributeError, TypeError):
+        valid = False
+    if not valid:
+        raise ObservationUnavailable("Orca ownership inspection returned unusable output")
+    return tuple(rows)
+
+
+def require_ownership_observation() -> None:
+    """Killing requires the same valid ownership sources used by classification."""
+    for args, key in ((("terminal", "list"), "terminals"),
+                      (("worktree", "ps"), "worktrees"),
+                      (("repo", "list"), "repos")):
+        observed_orca_rows(args, key)
 
 
 def reap_candidates(procs: list[Process] | None = None) -> list[Process]:
@@ -357,5 +417,5 @@ def reset_cache() -> None:
     for fn in (orca_terminals, orca_worktrees, orca_terminal_paths,
                orca_worktree_paths, orca_repo_paths, orca_orphaned_terminals,
                orca_unreleased_workers, launchd_labels, launchd_pids,
-               running_app_bundles):
+               running_app_bundles, observed_orca_rows):
         fn.cache_clear()

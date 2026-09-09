@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "activation": "withheld-until-independent-review-and-admission",
+  "files": [
+    {
+      "path": "/Users/jryear/.codex/AGENTS.md",
+      "sha256": "81a26f87b081dd5eed21c0386c89a042d2ac46013feb08dd204436b3cd961eb0"
+    },
+    {
+      "path": "/Users/jryear/.claude/CLAUDE.md",
+      "sha256": "96033966aaae8bc1720b07a9a7d718a213512c345300883495359a4e4d38ca14"
+    },
+    {
+      "path": "/Users/jryear/.codex/config.toml",
+      "sha256": "440110f5586789bcd7b7d7e2f8d3400ad23be219677454ca100446d127ba38fc"
+    }
+  ]
+}

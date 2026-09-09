@@ -21,6 +21,7 @@ one that is absent, and `fileproviderd` CPU already carries the same signal.
 from __future__ import annotations
 
 import os
+import math
 import shutil
 import subprocess
 from pathlib import Path
@@ -87,19 +88,27 @@ def _disk(rep: Report) -> None:
 
 def _cpu(rep: Report) -> tuple[list[str], list[str]]:
     """Returns (housekeeping_labels, hog_labels) so _load can explain itself."""
-    out = _run(["ps", "-Ao", "pcpu=,pid=,comm=", "-r"])
+    out = ow.observe_command(["ps", "-Ao", "pcpu=,pid=,comm=", "-r"])
+    rows = []
+    for line in out.splitlines():
+        if not line.strip():
+            continue
+        parts = line.split(None, 2)
+        try:
+            valid = (len(parts) == 3 and parts[1].isdigit() and int(parts[1]) >= 0
+                     and math.isfinite(float(parts[0])) and float(parts[0]) >= 0)
+        except ValueError:
+            valid = False
+        if not valid:
+            raise ow.ObservationUnavailable("ps inspection returned unusable CPU rows")
+        rows.append(parts)
+    rep.checked["cpu_observation"] = "available"
     house: dict[str, float] = {}
     house_names: list[str] = []
     hogs: list[str] = []
 
-    for line in out.splitlines()[:15]:
-        parts = line.split(None, 2)
-        if len(parts) < 3:
-            continue
-        try:
-            pct = float(parts[0])
-        except ValueError:
-            continue
+    for parts in rows[:15]:
+        pct = float(parts[0])
         if pct < HOUSEKEEPING_PCT:
             break
         pid, comm = parts[1], parts[2]
@@ -159,6 +168,9 @@ def _load(rep: Report, housekeeping: list[str], hogs: list[str]) -> None:
     elif hogs:
         why = f"contributors: {', '.join(hogs)}"
         act = "Address the CPU findings above."
+    elif rep.checked.get("cpu_observation") == "unavailable":
+        why = "CPU process observation unavailable; contributors cannot be determined"
+        act = "Restore inspection access and retry."
     else:
         why = ("no single process accounts for it - usually many small "
                "processes or heavy disk I/O wait")
@@ -191,8 +203,16 @@ def _processes(rep: Report) -> None:
 def run() -> Report:
     rep = Report(verb="machine")
     _disk(rep)
-    house, hogs = _cpu(rep)
+    try:
+        house, hogs = _cpu(rep)
+    except ow.ObservationUnavailable as exc:
+        house, hogs = [], []
+        ow.report_unavailable(rep, exc, "cpu")
     _load(rep, house, hogs)
     _docker(rep)
-    _processes(rep)
+    try:
+        _processes(rep)
+        rep.checked["process_observation"] = "available"
+    except ow.ObservationUnavailable as exc:
+        ow.report_unavailable(rep, exc)
     return rep

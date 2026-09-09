@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "task_id": "t_example",
+  "board": "ops-execution",
+  "project": "ops",
+  "objective": "Describe the concrete result to produce",
+  "user_journey": "Describe what the next person can open and verify",
+  "role": "implementer",
+  "task_class": "bounded-implementation",
+  "route": "bounded",
+  "scope": {
+    "worktree": "/absolute/isolated/worktree",
+    "base_revision": "0000000000000000000000000000000000000000",
+    "read_paths": [
+      "README.md"
+    ],
+    "write_paths": [
+      "README.md"
+    ],
+    "prohibited_effects": [
+      "No canonical writes, provider changes or deployment"
+    ]
+  },
+  "ownership": {
+    "orca_run_id": "run_example",
+    "coordinator_handle": "term_example",
+    "execution_authority_ref": "docs/EXECUTION-CONTRACT.md#ownership",
+    "allowed_terminal_handles": []
+  },
+  "acceptance": [
+    {
+      "description": "Exact repository check",
+      "argv": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "timeout_seconds": 30
+    }
+  ],
+  "dependencies": [],
+  "source_evidence": [
+    {
+      "path": "/absolute/evidence/source",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  ],
+  "decisions": [
+    {
+      "path": "/absolute/evidence/decision",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  ],
+  "authorization": {
+    "references": [
+      {
+        "path": "/absolute/evidence/authorization",
+        "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+      }
+    ],
+    "permissions": "workspace-write",
+    "network": false,
+    "expires_at": 1
+  },
+  "limits": {
+    "runtime_seconds": 1200,
+    "depth": 0,
+    "corrections": 1,
+    "max_attempts": 5,
+    "progress_seconds": 60
+  },
+  "stop_conditions": [
+    "Missing source evidence or exceeded bounds"
+  ],
+  "integration": {
+    "canonical_checkout": "/Users/jryear/dev/agents/ops",
+    "canonical_branch": "main",
+    "expected_head": "0000000000000000000000000000000000000000",
+    "authority_ref": "docs/EXECUTION-CONTRACT.md#integration",
+    "queue_board": "ops-execution"
+  }
+}

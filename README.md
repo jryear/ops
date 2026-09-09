@@ -8,8 +8,8 @@ ops <verb> [--json] [--quiet]     # ~/.local/bin/ops -> this repo's ./ops
 ops                               # no verb: prints help and the verb list
 ```
 
-Stdlib-only Python, no install step. Read-only unless a destructive flag is
-passed explicitly.
+Stdlib-only Python, no install step. Health commands remain read-only unless
+their documented mutation flag is passed explicitly.
 
 Installed as a **symlink** on `PATH`, not a shell alias: an alias exists only
 inside interactive zsh, so scripts, cron, Codex and Orca would not see it. The
@@ -29,23 +29,27 @@ ln -sf ~/dev/agents/ops/ops ~/.local/bin/ops
 | `machine` | Is this box healthy enough to keep working? | ~1s |
 | `newproj` | Create a project correctly, first time | network |
 | `registry` | `show` / `render` / `reconcile` the project index | ~4s / network |
+| `execution` | Policy, admission, artifact verification and recovery gates | command-dependent |
 
-## Feature freeze
+## Execution hardening (staged)
 
-**As of 3 September 2026 this is done.** The six verbs answer the six questions
-Phase 6 set out to answer, and that is the whole scope:
+The September 9 user-approved execution plan extends the original six-verb scope.
+`ops execution` resolves policy, validates packets, checks admission and indexes
+native execution evidence. Hermes owns task intent; Orca owns execution. The
+implementation is isolated and **not activated**: provider guarantees and
+independent live review remain blocked. See [the execution contract](docs/EXECUTION-CONTRACT.md)
+and [rollout status](docs/execution/ROLLOUT.md) for proven boundaries and missing evidence.
 
-> What needs my attention? · Is my work durable? · What's leaking? ·
-> Is my machine healthy? · How do I start something correctly? ·
-> What projects actually exist?
+```sh
+./ops execution resolve principal --json
+./ops execution validate examples/task-packet-v1.json --json
+./ops execution verify-route principal --cwd "$PWD" --json
+./ops triage --scope execution --json
+```
 
-From here, **Orca, Hermes and Saturn development create the requirement for the
-next `ops` feature — not imagination.** If you are about to add a verb because it
-sounds useful, that is the signal to stop. Fixing a verb that returns a wrong
-answer is always in scope; adding capability on speculation is not.
-
-The point of this layer is that it stays small enough to be trusted by five
-runtimes at once. A substrate that keeps growing stops being a substrate.
+Execution commands preserve the health envelope and exit codes. Without `--apply`,
+dispatch, verification, review, queue, integration and recovery only inspect or
+prepare. `verify-route --record` explicitly saves compact redacted evidence.
 
 ## Contract
 
@@ -71,11 +75,11 @@ verb it invoked:
 | git / GitHub | artifact truth: code, history, remotes |
 | Hermes | project control and messaging |
 | Orca | execution: worktrees, terminals, workers, leases |
-| Junior Core | coordination substrate (schema frozen behind SHA-256 hashes) |
+| Junior Core | frozen historical evidence, not current task authority |
 | `ops` | machine capabilities shared by all of the above |
 
-`registry.toml` stores exactly one fact no other system holds — **lifecycle**
-(`active` / `warm` / `dormant` / `frozen`). Everything else in a registry view is
+`registry.toml` stores **lifecycle**, explicit canonical-checkout selection and
+execution/integration authority references. Current Git and runtime facts are
 derived at read time from git, Orca and GitHub. The moment it caches something
 git already knows, it becomes a fourth thing to keep in sync.
 

@@ -1,0 +1,105 @@
+{
+  "schema_version": 1,
+  "observed_at": 1788993427.674926,
+  "source_worktree": "/Users/jryear/orca/workspaces/ops/execution-substrate-20260909",
+  "base_revision": "83d28e3e8202576e92296f4c876d33e130e52b6d",
+  "orca_run_id": "run_b498f2ac5ed5",
+  "hermes_task_id": "t_46355305",
+  "provider_inference_executed": false,
+  "independent_review": "blocked",
+  "routes": {
+    "principal": {
+      "exit_code": 2,
+      "eligibility": "catalog-and-subscription-auth-eligible",
+      "admission": "blocked",
+      "blockers": [
+        "no supported pre-dispatch guarantee disabling server model rerouting has been established",
+        "subscription auth does not establish no-credit use for all main and auxiliary calls",
+        "stock worker-start launch lacks executable/config pinning and enforced runtime/permission bounds; a verified custom launcher is required"
+      ],
+      "evidence": {
+        "sha256": "8e947a23a34a5c5097ee0efb85025959f4d7416c1ac7f115dde5f12e1b470204",
+        "path": "/Users/jryear/.local/state/ops/execution/objects/8e947a23a34a5c5097ee0efb85025959f4d7416c1ac7f115dde5f12e1b470204.blob"
+      }
+    },
+    "decision": {
+      "exit_code": 2,
+      "eligibility": "catalog-and-subscription-auth-eligible",
+      "admission": "blocked",
+      "blockers": [
+        "no supported pre-dispatch guarantee disabling server model rerouting has been established",
+        "subscription auth does not establish no-credit use for all main and auxiliary calls",
+        "stock worker-start launch lacks executable/config pinning and enforced runtime/permission bounds; a verified custom launcher is required"
+      ],
+      "evidence": {
+        "sha256": "9daf914c95770d7dad6271081a097f4b841552fc519b50dec94e6bf056ce3c61",
+        "path": "/Users/jryear/.local/state/ops/execution/objects/9daf914c95770d7dad6271081a097f4b841552fc519b50dec94e6bf056ce3c61.blob"
+      }
+    },
+    "review": {
+      "exit_code": 2,
+      "eligibility": "unknown",
+      "admission": "blocked",
+      "blockers": [
+        "exact model catalog/effort and auxiliary-call routing not established through a supported discovery interface",
+        "Orca launch does not attest absence of API-key fallback, utility calls, plugins and inherited routing",
+        "the installed ops adapter has no verified custom launcher enforcing read-only review and runtime bounds"
+      ],
+      "evidence": {
+        "sha256": "65962049ae0fd7c2bbbd6628fffaf4ad70b7231427e8af9ab1faf4f2521f7742",
+        "path": "/Users/jryear/.local/state/ops/execution/objects/65962049ae0fd7c2bbbd6628fffaf4ad70b7231427e8af9ab1faf4f2521f7742.blob"
+      }
+    },
+    "gemini_experimental": {
+      "exit_code": 2,
+      "eligibility": "unknown",
+      "admission": "blocked",
+      "blockers": [
+        "Gemini 3.8 Flash exact identifier, availability and economic route unverified",
+        "documented automatic and utility-call fallback has no verified disable guarantee",
+        "Orca per-launch model/effort preference interface does not advertise Gemini support"
+      ],
+      "evidence": {
+        "sha256": "8529662b46a1cab94837889959b7216b062a398d05d6669c9a95b48640a70571",
+        "path": "/Users/jryear/.local/state/ops/execution/objects/8529662b46a1cab94837889959b7216b062a398d05d6669c9a95b48640a70571.blob"
+      }
+    }
+  },
+  "verification": {
+    "exit_code": 0,
+    "unittest_cases": 40,
+    "legacy_assertions": 70,
+    "output_sha256": "055c5d096036c5f1e0d800c23341d320c8adf10174361c09fe38aab39db3865a"
+  },
+  "triage": {
+    "verb": "triage",
+    "exit_code": 0,
+    "summary": {
+      "action_required": 0,
+      "warnings": 0
+    },
+    "checked": {
+      "orca_dispatches": 45,
+      "orca_projection_categories": {
+        "retained-resource": 14,
+        "historical-completion": 28,
+        "historical-failure": 2,
+        "live-execution": 1
+      },
+      "orca_observation": "available",
+      "hermes_task_states": {
+        "done": 121,
+        "scheduled": 9,
+        "blocked": 24,
+        "todo": 19,
+        "ready": 2
+      },
+      "hermes_observation": "available",
+      "elapsed_s": 1.7
+    },
+    "notes": [
+      "Hermes retains 24 blocked tasks; blocked history alone is not a live execution failure."
+    ],
+    "findings": []
+  }
+}

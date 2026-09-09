@@ -1,0 +1,13 @@
+# Additive template for future infrastructure sessions, pending route admission.
+# Does not change the global default or any existing session.
+[profiles.ops-principal]
+model = "gpt-5.6-sol"
+model_reasoning_effort = "high"
+forced_login_method = "chatgpt"
+service_tier = "default"
+
+[profiles.ops-kiki]
+model = "gpt-5.6-sol"
+model_reasoning_effort = "medium"
+forced_login_method = "chatgpt"
+service_tier = "default"

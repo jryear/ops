@@ -51,10 +51,21 @@ def assess() -> list[ow.Process]:
 
 def run(kill: bool = False, pids: list[int] | None = None) -> Report:
     rep = Report(verb="reap")
-    classified = assess()
+    ow.reset_cache()
+    try:
+        if kill:
+            ow.require_ownership_observation()
+        classified = assess()
+    except ow.ObservationUnavailable as exc:
+        ow.report_unavailable(rep, exc)
+        if kill:
+            rep.add(ACTION, "process.kill_refused", "Process termination refused",
+                    "Required process or ownership observation is unavailable", "Restore observation and retry.")
+        return rep
 
     tally = Counter(p.classification for p in classified)
     rep.checked = {
+        "process_observation": "available",
         "candidates": len(classified),
         "definitely_orphaned": tally[ow.ORPHAN],
         "likely_orphaned": tally[ow.LIKELY_ORPHAN],
@@ -111,8 +122,26 @@ def run(kill: bool = False, pids: list[int] | None = None) -> Report:
             refused.append(p)
             continue
         try:
+            ow.reset_cache()
+            current = next((q for q in ow.list_processes() if q.pid == pid), None)
+            if current is None:
+                missing.append(pid)
+                continue
+            if (current.uid, current.ppid, current.command) != (p.uid, p.ppid, p.command):
+                rep.add(ACTION, "process.kill_refused", f"pid {pid}",
+                        "Process identity changed since inspection", "Inspect again.")
+                continue
+            ow.require_ownership_observation()
+            current = ow.classify(current)
+            if current.classification == ow.OWNED:
+                refused.append(current)
+                continue
             os.kill(pid, signal.SIGTERM)
             killed.append(p)
+        except ow.ObservationUnavailable as exc:
+            ow.report_unavailable(rep, exc)
+            rep.add(ACTION, "process.kill_refused", f"pid {pid}",
+                    "Fresh observation unavailable; no signal sent", "Restore observation and retry.")
         except (ProcessLookupError, PermissionError) as e:
             rep.add(WARN, "process.kill_failed", f"pid {pid}", str(e), "")
 
@@ -120,9 +149,22 @@ def run(kill: bool = False, pids: list[int] | None = None) -> Report:
         time.sleep(2)
         for p in killed:
             try:
-                os.kill(p.pid, 0)          # still alive -> escalate
+                ow.reset_cache()
+                current = next((q for q in ow.list_processes() if q.pid == p.pid), None)
+                if current is None:
+                    continue
+                if (current.uid, current.ppid, current.command) != (p.uid, p.ppid, p.command):
+                    raise ow.ObservationUnavailable("Process identity changed before escalation")
+                ow.require_ownership_observation()
+                if ow.classify(current).classification == ow.OWNED:
+                    raise ow.ObservationUnavailable("Process now has an active owner")
                 os.kill(p.pid, signal.SIGKILL)
                 p.evidence += " (SIGKILL required)"
+            except ow.ObservationUnavailable as exc:
+                ow.report_unavailable(rep, exc)
+                rep.add(ACTION, "process.kill_refused", f"pid {p.pid}",
+                        "Escalation refused; SIGTERM was sent but termination is unverified",
+                        "Inspect through the process owner.")
             except ProcessLookupError:
                 pass
             except PermissionError:
@@ -130,7 +172,7 @@ def run(kill: bool = False, pids: list[int] | None = None) -> Report:
 
     for p in killed:
         rep.add(OK, "process.killed", f"pid {p.pid}  {_name(p.command)}",
-                f"terminated ({p.classification})", "",
+                f"termination signal sent ({p.classification}); see any verification warnings", "",
                 {"pid": p.pid, "command": p.command})
     for p in refused:
         rep.add(ACTION, "process.kill_refused", f"pid {p.pid}  {_name(p.command)}",
