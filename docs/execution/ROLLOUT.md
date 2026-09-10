@@ -15,8 +15,10 @@ and real disposable Git worktrees; it must not be described as live acceptance.
 - Run coordinator: `term_733304b8-712c-4f76-a016-80114e956213`, a retained
   infrastructure coordination shell. This existing Codex turn implemented the
   changes; the shell is not claimed as a separately launched Sol principal.
-- Hermes board/task: `ops-execution` / `t_46355305`, unassigned and held from the
-  Hermes dispatcher. Provider and verification evidence is attached there.
+- Hermes board/task: `ops-execution` / `t_46355305`, created unassigned and blocked.
+  Later readback found a native `promoted` event and status `ready`. Holding Orca
+  tasks out of Hermes dispatch still requires a verified integration mechanism.
+  Provider and verification evidence is attached there.
 - The original checkout, terminal, frozen Junior, old orchestration repositories,
   profiles, global config and existing sessions remain untouched.
 - Preserved 50 inherited dirty files; their content hashes were unchanged on
@@ -31,6 +33,10 @@ and real disposable Git worktrees; it must not be described as live acceptance.
 - One `ops execution` namespace: `resolve`, `verify-route`, `validate`, `dispatch`,
   `status`, `verify`, `review`, `queue`, `integrate`, `recover`.
 - Sixteen role/class routing entries, versioned TOML and strict task/event schemas.
+- Policy v2 encodes Zack's YOLO preference for every new model route, including
+  review. Task packet v2 separates native permissions from task scope; v1 remains
+  unchanged and reconstructable. Provider help establishes available bypass flags,
+  while observed launch permissions remain unknown until a verified launch.
 - Fresh supported Codex account/model/config discovery; Claude auth discovery;
   Gemini executable/settings observation. Main and auxiliary facts remain separate.
 - Immutable policy/packet objects; hash-linked attempt events; private storage;
@@ -51,7 +57,11 @@ and real disposable Git worktrees; it must not be described as live acceptance.
 ## Verification
 
 `python3 -m unittest discover -s tests -v` passed with host observation access:
-**41 unittest cases and 70 legacy assertions**. The sandbox denies launchctl access,
+**45 unittest cases and 70 legacy assertions** after the YOLO policy correction.
+The four added cases cover all-route YOLO requirements, permission observation
+mismatch, review scope without a native permission downgrade, and unchanged v1
+reconstruction with refusal to silently upgrade historical packets.
+The sandbox denies launchctl access,
 so host access is needed for the legacy ownership tests. Verification commands
 inside the tests use their own macOS sandbox, denying network and writes outside
 their own temporary scratch directory. Candidate source writes were refused.
@@ -59,7 +69,8 @@ their own temporary scratch directory. Candidate source writes were refused.
 `git diff --check` passed. Gitleaks scanned the worktree with full redaction and
 reported no leaks. The private GitHub repository identity was freshly verified.
 See `live-evidence.json` for compact route observations and the earlier 40-case
-verification hash, and `final-verification.json` for the final 41-case result;
+verification hash, `final-verification.json` for the earlier 41-case result, and
+`permission-update.json` for the YOLO clarification and current checks;
 raw local test output is `~/.local/state/ops/execution/validation/tests-20260909.log`.
 
 | Acceptance case | Evidence boundary |
@@ -80,18 +91,19 @@ raw local test output is `~/.local/state/ops/execution/validation/tests-20260909
 
 | Lane | Observed | Missing before admission |
 | --- | --- | --- |
-| OpenAI | Codex `0.153.4`, ChatGPT Pro auth, requested models/efforts in actual executable catalog | Supported no-server-rerouting and no-credit guarantees for main/auxiliary calls; verified per-attempt executable/config pinning and runtime/permission enforcement |
-| Claude | CLI `2.1.266`, first-party `claude.ai` Pro auth | Supported exact model/effort discovery, auxiliary/economic/fallback proof, and verified read-only bounded review launcher |
+| OpenAI | Codex `0.153.4`, ChatGPT Pro auth, requested models/efforts in actual executable catalog | Supported no-server-rerouting and no-credit guarantees for main/auxiliary calls; verified per-attempt executable/config pinning, YOLO launch and runtime bounds |
+| Claude | CLI `2.1.266`, first-party `claude.ai` Pro auth | Supported exact model/effort discovery, auxiliary/economic/fallback proof, and verified YOLO review launcher with runtime bounds |
 | Gemini | CLI `0.59.0`, `oauth-personal` setting | Exact Gemini 3.8 Flash identifier/availability/economics; disabling automatic and utility fallback; supported model/effort launch path; substantive independent acceptance |
 | Kiki/Hermes | Existing task/events/attachments APIs inspected; routing defaults encoded | New-session profile plus compression/utility/plugin/economic admission remains to be implemented and verified; existing Kiki config unchanged |
 
 There is no hidden bypass flag. `verify-route` and `dispatch --apply` return code 2
 when admission is missing. The current adapter also deliberately withholds accepted
-review because `worker-show` launch preferences do not prove read-only execution
-or provider session identity. It does not invent a native attestation field.
+review because `worker-show` launch preferences do not prove provider execution
+or session identity. It does not invent a native attestation field. YOLO permission
+authorization is explicit; provider execution and billing evidence are separate.
 
 Remaining implementation: a supported custom per-attempt launcher that proves
-executable/config/environment identity, enforces permissions/runtime/depth and
+executable/config/environment identity, establishes YOLO permissions, enforces runtime/depth and
 observes provider events; real bounded retry/resume after native reconciliation;
 full auxiliary admission including Kiki/Hermes. These are not represented as
 completed by the fixtures. Provider economic/no-substitution guarantees must be

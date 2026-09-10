@@ -8,18 +8,23 @@ import tomllib
 from .common import ROOT, Blocked, digest
 
 POLICY = ROOT / "execution-policy.toml"
+YOLO_LAUNCH = {"permissions": "yolo", "approval_policy": "never", "sandbox": "none"}
 
 
 def load(path=POLICY):
     raw = Path(path).read_bytes()
     policy = tomllib.loads(raw.decode())
-    if policy.get("schema_version") != 1 or not policy.get("policy_version"):
+    if type(policy.get("schema_version")) is not int or policy["schema_version"] not in (1, 2) or not policy.get("policy_version"):
         raise Blocked("unsupported policy schema or missing policy version")
     if policy.get("applies_to") != "new-runs-only":
         raise Blocked("policy must apply to new runs only")
     if policy.get("constraints") != {"paid_fallback": False, "automatic_substitution": False,
             "credential_changes": False, "required_observations": True}:
         raise Blocked("policy weakens required economic or observation constraints")
+    if policy["schema_version"] == 2 and policy.get("launch") != YOLO_LAUNCH:
+        raise Blocked("new-run policy requires YOLO permissions, no approval prompts and no native sandbox")
+    if policy["schema_version"] == 1 and "launch" in policy:
+        raise Blocked("launch permissions require policy schema v2")
     routes = policy.get("routes", {})
     for name, route in routes.items():
         required = {"role", "task_class", "provider", "model", "effort", "billing", "review", "escalation"}
@@ -33,6 +38,7 @@ def resolve(name, path=POLICY):
     if name not in policy["routes"]:
         raise Blocked(f"unknown route: {name}")
     return {"policy_version": policy["policy_version"], "policy_sha256": sha,
+            "launch": policy.get("launch"),
             "route_id": name, **policy["routes"][name]}
 
 
@@ -90,7 +96,10 @@ def validate_schema(value, schema, at="$", root=None):
 
 
 def validate_packet(packet):
-    schema = json.loads((ROOT / "schemas/task-packet-v1.json").read_text())
+    version = packet.get("schema_version") if isinstance(packet, dict) else None
+    if type(version) is not int or version not in (1, 2):
+        raise Blocked("unsupported task packet schema")
+    schema = json.loads((ROOT / f"schemas/task-packet-v{version}.json").read_text())
     validate_schema(packet, schema)
     scope = packet["scope"]
     for path in scope["write_paths"] + scope["read_paths"]:
@@ -103,3 +112,10 @@ def validate_packet(packet):
     if packet["task_id"] in packet["dependencies"]:
         raise Blocked("task cannot depend on itself")
     return packet
+
+
+def require_new_run_permissions(packet, route):
+    if packet["schema_version"] != 2:
+        raise Blocked("new runs require a v2 YOLO packet; retain historical v1 packets unchanged")
+    if route.get("launch") != YOLO_LAUNCH or packet["authorization"]["permissions"] != "yolo":
+        raise Blocked("new-run packet and policy must request YOLO permissions")

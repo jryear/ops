@@ -15,6 +15,26 @@ import subprocess
 import time
 
 from .common import Blocked, command, digest, encoded, json_command
+from .policy import YOLO_LAUNCH
+
+PERMISSION_ARGS = {
+    "codex": ["--dangerously-bypass-approvals-and-sandbox"],
+    "claude": ["--dangerously-skip-permissions"],
+    "gemini": ["--approval-mode", "yolo", "--sandbox=false"],
+}
+
+
+def inspect_permission_interface(provider, executable):
+    """Discover native YOLO flags without launching a model or claiming execution."""
+    args = PERMISSION_ARGS.get(provider)
+    if args is None:
+        raise Blocked("provider YOLO permission interface is unsupported")
+    help_text = command([executable, "--help"])
+    for arg in args:
+        if arg.startswith("--") and arg.split("=", 1)[0] not in help_text:
+            raise Blocked("installed provider does not advertise the requested YOLO permission flag")
+    return {"argv": args, "help_sha256": digest(help_text.encode()),
+            "evidence": "advertised-interface-only"}
 
 
 class CodexRPC:
@@ -106,11 +126,13 @@ def inspect_codex(executable, cwd):
 def verify(route, cwd, orca=None):
     result = {"schema_version": 1, "recorded_at": time.time(), "route": route,
               "eligibility": "unknown", "admission": "blocked", "observed_route": None,
+              "requested_launch": route.get("launch"), "observed_launch": None,
               "economic_route": None, "fallback": "unknown", "blockers": [],
               "environment_names": environment_risks()}
     try:
         exe = identity(route["provider"])
         result["executable"] = exe
+        result["permission_interface"] = inspect_permission_interface(route["provider"], exe["path"])
         if route["provider"] == "codex":
             data = inspect_codex(exe["path"], cwd)
             result["discovery"] = data
@@ -126,13 +148,13 @@ def verify(route, cwd, orca=None):
             result["blockers"] += [
                 "no supported pre-dispatch guarantee disabling server model rerouting has been established",
                 "subscription auth does not establish no-credit use for all main and auxiliary calls",
-                "stock worker-start launch lacks executable/config pinning and enforced runtime/permission bounds; a verified custom launcher is required"]
+                "stock worker-start launch lacks executable/config pinning, verified YOLO permissions and runtime bounds; a verified custom launcher is required"]
         elif route["provider"] == "claude":
             auth = json_command([exe["path"], "auth", "status", "--json"])
             result["discovery"] = {k: auth.get(k) for k in ("loggedIn", "authMethod", "apiProvider", "subscriptionType")}
             result["blockers"] += ["exact model catalog/effort and auxiliary-call routing not established through a supported discovery interface",
                                    "Orca launch does not attest absence of API-key fallback, utility calls, plugins and inherited routing",
-                                   "the installed ops adapter has no verified custom launcher enforcing read-only review and runtime bounds"]
+                                   "the installed ops adapter has no verified custom launcher establishing YOLO permissions and runtime bounds"]
         elif route["provider"] == "gemini":
             settings = Path.home() / ".gemini/settings.json"
             config = json.loads(settings.read_text()) if settings.exists() else {}
@@ -158,3 +180,5 @@ def require_admission(observation):
         raise Blocked("route admission withheld: " + "; ".join(observation.get("blockers", ["required evidence missing"])))
     if time.time() - observation["recorded_at"] > 60:
         raise Blocked("route admission observation expired")
+    if observation.get("requested_launch") != YOLO_LAUNCH or observation.get("observed_launch") != YOLO_LAUNCH:
+        raise Blocked("YOLO launch permissions are unverified or differ from the requested policy")

@@ -1,6 +1,11 @@
-schema_version = 1
-policy_version = "2026-09-09.1"
+schema_version = 2
+policy_version = "2026-09-09.2"
 applies_to = "new-runs-only"
+
+[launch]
+permissions = "yolo"
+approval_policy = "never"
+sandbox = "none"
 
 [constraints]
 paid_fallback = false

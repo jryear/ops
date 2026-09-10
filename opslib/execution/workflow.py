@@ -119,12 +119,11 @@ class Execution:
     def prepare(self, packet):
         policy.validate_packet(packet)
         route = policy.resolve(packet["route"])
+        policy.require_new_run_permissions(packet, route)
         if packet["role"] != route["role"] or packet["task_class"] != route["task_class"]:
             raise Blocked("packet role/class does not match the resolved route")
         if time.time() >= packet["authorization"]["expires_at"]:
             raise Blocked("task authorization expired")
-        if not packet["scope"]["write_paths"] and packet["authorization"]["permissions"] != "read-only":
-            raise Blocked("read-only tasks must use read-only permissions")
         project_contract(packet)
         references(packet)
         path = repository(packet)
@@ -155,7 +154,8 @@ class Execution:
             self.record(packet, attempt, "prepared", {"packet": packet_ref, "policy": policy_ref,
                 "policy_sha256": sha, "route": prepared["route"], "hermes_task_id": packet["task_id"],
                 "hermes_board": packet["board"], "orca_run_id": packet["ownership"]["orca_run_id"],
-                "requested_route": prepared["route"], "observed_route": None, "provider_session_id": None})
+                "requested_route": prepared["route"], "observed_route": None, "provider_session_id": None,
+                "requested_launch": prepared["route"]["launch"], "observed_launch": None})
             self.record(packet, attempt, "dispatch_intent", {"packet_sha256": packet_ref["sha256"]})
             try:
                 task = self.orca.call("orchestration", "task-create", "--spec", self.spec(packet, attempt, packet_ref),
@@ -180,6 +180,9 @@ class Execution:
             "Attempt " + attempt, "Target: " + packet["scope"]["worktree"], "Change: " + packet["objective"],
             "Constraints: " + json.dumps(packet["scope"]["prohibited_effects"]),
             "Ownership: " + json.dumps(packet["scope"]["write_paths"]),
+            "Native permissions: " + packet["authorization"]["permissions"],
+            "Task network authorization: " + json.dumps(packet["authorization"]["network"]),
+            "Task scope remains binding with YOLO permissions; an empty write set means inspection only.",
             "Acceptance: " + json.dumps(packet["acceptance"]),
             "Read the entire packet, preserve its source references and stop conditions. Do not exceed runtime/depth bounds."])
 

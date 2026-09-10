@@ -102,7 +102,7 @@ class ExecutionTests(unittest.TestCase):
         self.decision = self.root / "decision.txt"
         self.decision.write_text("Fixture authorization for bounded local tests only.\n")
         reference = {"path": str(self.decision), "sha256": digest(self.decision.read_bytes())}
-        self.packet = {"schema_version": 1, "task_id": "t_test", "board": "fixture", "project": "fixture",
+        self.packet = {"schema_version": 2, "task_id": "t_test", "board": "fixture", "project": "fixture",
             "objective": "Change the fixture source", "user_journey": "Read the verified source",
             "role": "implementer", "task_class": "bounded-implementation", "route": "bounded",
             "scope": {"worktree": str(self.worktree), "base_revision": self.base, "read_paths": ["source.txt"],
@@ -111,7 +111,7 @@ class ExecutionTests(unittest.TestCase):
                           "execution_authority_ref": "fixture-authority", "allowed_terminal_handles": []},
             "acceptance": [{"description": "source is changed", "argv": [sys.executable, "-c", "from pathlib import Path; assert Path('source.txt').read_text() == 'after\\n'"], "timeout_seconds": 10}],
             "dependencies": [], "source_evidence": [reference], "decisions": [reference],
-            "authorization": {"references": [reference], "permissions": "workspace-write", "network": False, "expires_at": int(time.time()) + 3600},
+            "authorization": {"references": [reference], "permissions": "yolo", "network": False, "expires_at": int(time.time()) + 3600},
             "limits": {"runtime_seconds": 60, "depth": 0, "corrections": 1, "max_attempts": 5, "progress_seconds": 20},
             "stop_conditions": ["source evidence unavailable", "bounded checks fail"],
             "integration": {"canonical_checkout": str(self.canonical), "canonical_branch": "main", "expected_head": self.base,
@@ -130,7 +130,8 @@ class ExecutionTests(unittest.TestCase):
         self.temp.cleanup()
 
     def admitted(self, *args):
-        return {"admission": "admitted", "blockers": [], "recorded_at": time.time(), "proof": "fixture-only"}
+        return {"admission": "admitted", "blockers": [], "recorded_at": time.time(), "proof": "fixture-only",
+                "requested_launch": dict(policy.YOLO_LAUNCH), "observed_launch": dict(policy.YOLO_LAUNCH)}
 
     def dispatch(self):
         with patch.object(providers, "verify", side_effect=self.admitted):
@@ -170,6 +171,34 @@ class ExecutionTests(unittest.TestCase):
             with self.subTest(field=field), self.assertRaises(Blocked): policy.validate_packet(packet)
         packet = copy.deepcopy(self.packet); packet["unbounded"] = True
         with self.assertRaises(Blocked): policy.validate_packet(packet)
+
+    def test_yolo_review_keeps_empty_write_scope_without_native_permission_downgrade(self):
+        self.packet.update(role="reviewer", route="review", task_class="difficult-review")
+        self.packet["scope"]["write_paths"] = []
+        with patch.object(providers, "verify", side_effect=self.admitted):
+            prepared = self.execution.prepare(self.packet)
+        self.assertEqual(prepared["route"]["launch"], policy.YOLO_LAUNCH)
+        self.packet["scope"]["write_paths"] = ["source.txt"]
+        with self.assertRaisesRegex(Blocked, "read-only scope"):
+            self.execution.prepare(self.packet)
+
+    def test_historical_v1_packet_reconstructs_unchanged_but_cannot_start_new_run(self):
+        old_packet = copy.deepcopy(self.packet)
+        old_packet["schema_version"] = 1
+        old_packet["authorization"]["permissions"] = "workspace-write"
+        policy.validate_packet(old_packet)
+        old_policy = (policy.POLICY.read_text()
+                      .replace("schema_version = 2", "schema_version = 1")
+                      .replace('policy_version = "2026-09-09.2"', 'policy_version = "2026-09-09.1"')
+                      .replace('[launch]\npermissions = "yolo"\napproval_policy = "never"\nsandbox = "none"\n\n', ''))
+        old_policy_ref = self.store.put_bytes(old_policy.encode())
+        self.store.event("legacy", "prepared", {"packet": self.store.put(old_packet), "policy": old_policy_ref})
+        recovered, events = self.execution.reconstruct("legacy")
+        self.assertEqual(recovered, old_packet)
+        self.assertIsNone(policy.resolve("principal", old_policy_ref["path"])["launch"])
+        with self.assertRaisesRegex(Blocked, "v2 YOLO packet"):
+            self.execution.prepare(old_packet)
+        self.assertFalse(self.orca.calls)
 
     def test_blocked_route_never_reaches_native_mutation(self):
         with patch.object(providers, "verify", return_value={"admission": "blocked", "blockers": ["billing unknown"]}):

@@ -39,10 +39,13 @@ native execution evidence. Hermes owns task intent; Orca owns execution. The
 implementation is isolated and **not activated**: provider guarantees and
 independent live review remain blocked. See [the execution contract](docs/EXECUTION-CONTRACT.md)
 and [rollout status](docs/execution/ROLLOUT.md) for proven boundaries and missing evidence.
+New model sessions request **YOLO permissions**, without native approval prompts
+or sandboxing, across all routes including review. Task scope, ownership and exact
+artifact acceptance remain separate checks. Existing runs retain their snapshots.
 
 ```sh
 ./ops execution resolve principal --json
-./ops execution validate examples/task-packet-v1.json --json
+./ops execution validate examples/task-packet-v2.json --json
 ./ops execution verify-route principal --cwd "$PWD" --json
 ./ops triage --scope execution --json
 ```

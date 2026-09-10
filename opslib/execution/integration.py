@@ -132,7 +132,7 @@ def require_review_execution_proof(native, receipt):
     """
     if native.get("dispatch", {}).get("status") != "completed" or native.get("worker", {}).get("state") != "succeeded":
         raise Blocked("independent reviewer has not completed successfully")
-    raise Blocked("read-only reviewer enforcement and provider-session execution evidence are not established by the installed adapter")
+    raise Blocked("reviewer provider-session execution evidence and unchanged-artifact proof are not established by the installed adapter")
 
 
 def queue(execution, attempt, apply=False):

@@ -1,6 +1,6 @@
 # Shared execution contract
 
-Policy version 2026-09-09.1. Applies to new runs only. Routing in the September 8
+Policy version 2026-09-09.2. Applies to new runs only. Routing in the September 8
 “Astra authors” contract is superseded; its task and acceptance requirements are
 preserved below. Existing sessions, live profiles, historical runs and frozen
 Junior remain unchanged. The September 9 implementation is staged in an isolated
@@ -38,6 +38,22 @@ work; mechanical work uses Luna low/medium. Gemini 3.8 Flash is experimental and
 blocked pending substantive verified execution. No automatic model substitution,
 paid fallback, credential change or credit purchase is permitted.
 
+Zack's September 9 clarification establishes **YOLO permissions for every new
+Orca-launched model**, including principals, coordinators, implementers and
+reviewers. Policy v2 requires `permissions = "yolo"`, `approval_policy = "never"`
+and `sandbox = "none"`. Workers perform authorized work without native approval
+prompts. This supersedes the earlier requirement for restrictive worker sandboxes.
+Task write sets and prohibited effects are instructions and acceptance conditions;
+they are not claimed as operating-system isolation for a YOLO worker. Reviewers
+use separate checkouts and an empty write set, with acceptance bound to the exact
+unchanged candidate. Runtime/depth bounds and model/billing admission still apply.
+
+Provider help advertises Codex `--dangerously-bypass-approvals-and-sandbox`, Claude
+`--dangerously-skip-permissions`, and Gemini `--approval-mode yolo --sandbox=false`.
+The adapter records these interfaces separately from observed launch permissions.
+In particular, a bypass flag alone does not prove inherited sandbox configuration
+is disabled. New runs require the requested YOLO mode to be verified by the launcher.
+
 Catalog and effective config establish eligibility. Native runtime events must
 establish observed execution. A model's answer about its identity is never proof.
 Account discovery, config hashes and auxiliary-surface inventory are compacted
@@ -47,7 +63,7 @@ sessions and never treated as exact task costs.
 
 Current adapters deliberately cannot admit a provider: no verified pre-dispatch
 no-rerouting/no-credit guarantee is established. A reviewed custom launcher is
-also needed to pin the executable/config and enforce runtime, permissions and
+also needed to pin the executable/config, establish YOLO permissions and enforce runtime and
 auxiliary-call constraints while using Orca's supported lifecycle. The CLI has no
 `--force`, imported admission receipt, boolean override, or paid fallback path.
 Explicit model/effort preferences alone cannot enable admission. See
@@ -55,12 +71,16 @@ Explicit model/effort preferences alone cannot enable admission. See
 
 ## Durable packets and evidence
 
-`schemas/task-packet-v1.json` defines identity, outcome, user journey, source
+`schemas/task-packet-v2.json` defines identity, outcome, user journey, source
 scope/base, write sets, ownership, acceptance commands/timeouts, dependencies,
 decisions and source hashes, permission/network/expiry authorization, runtime,
 depth, correction and attempt bounds, stop conditions, and integration authority.
 Schema validation is separate from admission. Scope paths are explicit relative
 paths; review/diagnosis write sets must be empty. Unknown fields fail closed.
+Network authorization describes the task's allowed effects; it does not enable a
+worker sandbox. Schema v1 and its example remain unchanged for historical
+validation and recovery. New dispatch requires v2; old packets are never silently
+upgraded to YOLO.
 
 Every attempted dispatch stores a content-addressed immutable packet and exact
 policy bytes, including the policy hash. `schemas/run-event-v1.json` defines
@@ -86,7 +106,8 @@ integrator; ops does not assign itself that authority.
 
 Verification binds a clean source commit/tree/base and exact checks. Independent
 review uses a separate checkout and must prove native reviewer/session identity,
-read-only execution and appropriate provider independence. Current adapters
+unchanged candidate artifacts and appropriate provider independence. Native
+reviewer permissions are YOLO, while its task scope permits inspection only. Current adapters
 record rejection but withhold acceptance until that execution proof exists.
 An accepted review queues one integration item in Hermes. The integrator takes
 a project lock, checks the first item, current expected head, clean canonical

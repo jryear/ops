@@ -1,0 +1,79 @@
+{
+  "schema_version": 1,
+  "recorded_at": "2026-09-10T00:37:43.404070+00:00",
+  "authority": {
+    "source": "Zack user clarification in current substrate conversation",
+    "quote": "What I like about Orca, is called models have permissions yolo-approved",
+    "interpretation": "Every new Orca-launched model uses YOLO native permissions with no approval prompts, including reviewers."
+  },
+  "policy_version": "2026-09-09.2",
+  "policy_sha256": "60d1feea770bc51a270fde84eb3332a577f4878701e817975f23712340a2cf5e",
+  "requested_launch": {
+    "permissions": "yolo",
+    "approval_policy": "never",
+    "sandbox": "none"
+  },
+  "providers": {
+    "codex": {
+      "executable": {
+        "path": "/Users/jryear/.local/bin/codex",
+        "resolved_path": "/Users/jryear/.local/lib/node_modules/@openai/codex/bin/codex.js",
+        "sha256": "61b0194f3bb6534439c8d26a3ed57d0805f84b884588b761795323eeb92fcf70",
+        "version": "codex-cli 0.153.4"
+      },
+      "permission_interface": {
+        "argv": [
+          "--dangerously-bypass-approvals-and-sandbox"
+        ],
+        "help_sha256": "e8ecd554e6e3e870a55e540f1a21598c085cfee237f9c735ff9b5ba4ac4cf08a",
+        "evidence": "advertised-interface-only"
+      },
+      "observed_launch": null
+    },
+    "claude": {
+      "executable": {
+        "path": "/Users/jryear/.local/bin/claude",
+        "resolved_path": "/Users/jryear/.local/share/claude/versions/2.1.267",
+        "sha256": "a681f3008f0050029aeebcab3af51bb6a55ddeb625a3af3141a4416d43cd2558",
+        "version": "2.1.267 (Claude Code)"
+      },
+      "permission_interface": {
+        "argv": [
+          "--dangerously-skip-permissions"
+        ],
+        "help_sha256": "ae85d661e9c086f05637ebcd868f5702b477ff6e55e2e65b8ada7807cd51a4b6",
+        "evidence": "advertised-interface-only"
+      },
+      "observed_launch": null
+    },
+    "gemini": {
+      "executable": {
+        "path": "/Users/jryear/.local/bin/gemini",
+        "resolved_path": "/Users/jryear/.local/lib/node_modules/@google/gemini-cli/bundle/gemini.js",
+        "sha256": "283a6044adc7837f9331fc2a5ea06ec4d52e9738f6fd202a94a4ae0c11efd53d",
+        "version": "0.59.0"
+      },
+      "permission_interface": {
+        "argv": [
+          "--approval-mode",
+          "yolo",
+          "--sandbox=false"
+        ],
+        "help_sha256": "b5c6e1af180f48adb3700982e7b06e905f29d2965f047eaeebd0b5c4f676b632",
+        "evidence": "advertised-interface-only"
+      },
+      "observed_launch": null
+    }
+  },
+  "verification": {
+    "unittest_cases": 45,
+    "legacy_assertions": 70,
+    "result": "pass",
+    "command": "python3 -m unittest discover -s tests -v",
+    "source": "current tool execution receipt",
+    "examples_v1_and_v2_schema_valid": true,
+    "live_configuration_unchanged": true
+  },
+  "activation": "staged-only; provider execution and independent review remain incomplete",
+  "inference_performed": false
+}

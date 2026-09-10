@@ -5,9 +5,13 @@ model = "gpt-5.6-sol"
 model_reasoning_effort = "high"
 forced_login_method = "chatgpt"
 service_tier = "default"
+approval_policy = "never"
+sandbox_mode = "danger-full-access"
 
 [profiles.ops-kiki]
 model = "gpt-5.6-sol"
 model_reasoning_effort = "medium"
 forced_login_method = "chatgpt"
 service_tier = "default"
+approval_policy = "never"
+sandbox_mode = "danger-full-access"
