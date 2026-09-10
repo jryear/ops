@@ -20,8 +20,11 @@ blocked; this is not a completed rollout.**
 | Git / GitHub | Code, revisions, reviewable changes and backup evidence |
 
 No new scheduler or task database is introduced. Hermes tasks are explicitly
-unassigned and held (`blocked`/`review`) to prevent its dispatcher from competing
-with Orca. Hermes events and attachments retain the workflow record. A blocked
+unassigned and held by an explicit native `blocked` event to prevent its dispatcher
+from competing with Orca. A created card's `blocked` label is insufficient: Hermes
+automatically promotes it when no explicit block event exists. Any Hermes claim
+history on an Orca-owned card requires reconciliation before ops admission.
+Hermes events and attachments retain the workflow record. A blocked
 Hermes card can represent an admission hold; it does not imply a live process
 failure. Native IDs are always qualified by board, Run and Dispatch.
 

@@ -7,13 +7,20 @@ from pathlib import Path
 from ..model import ACTION, Report, emit
 from . import integration, policy, providers
 from .common import Blocked, Store
-from .native import Orca
+from .native import Orca, Hermes
 from .workflow import Execution
 
 
 def parser(sub):
     p = sub.add_parser("execution", help="Policy, admission, evidence, review, integration and recovery")
     commands = p.add_subparsers(dest="execution_action", required=True)
+    hold = commands.add_parser("hold", help="Record and verify an explicit Hermes dispatcher hold")
+    hold.add_argument("board")
+    hold.add_argument("task")
+    hold.add_argument("--reason", required=True)
+    hold.add_argument("--apply", action="store_true")
+    hold.add_argument("--json", action="store_true")
+    hold.add_argument("--quiet", action="store_true")
     for action in ("resolve", "verify-route", "validate", "dispatch", "status", "verify", "review", "queue", "integrate", "recover"):
         cmd = commands.add_parser(action)
         cmd.add_argument("--json", action="store_true")
@@ -22,6 +29,7 @@ def parser(sub):
             cmd.add_argument("route")
         if action == "verify-route":
             cmd.add_argument("--cwd", default=str(Path.cwd()))
+            cmd.add_argument("--launch-config", action="store_true", help="verify isolated process overrides without inference")
             cmd.add_argument("--record", action="store_true", help="save compact redacted evidence locally")
         if action in ("validate", "dispatch"):
             cmd.add_argument("packet", type=Path)
@@ -43,10 +51,12 @@ def run(args):
     rep.checked["action"] = args.execution_action
     try:
         action = args.execution_action
-        if action == "resolve":
+        if action == "hold":
+            result = Hermes().hold(args.board, args.task, args.reason, apply=args.apply)
+        elif action == "resolve":
             result = policy.resolve(args.route)
         elif action == "verify-route":
-            result = providers.verify(policy.resolve(args.route), Path(args.cwd), Orca())
+            result = providers.verify(policy.resolve(args.route), Path(args.cwd), Orca(), launch_config=args.launch_config)
             if args.record:
                 result["evidence"] = Store().put(result)
             if result["admission"] != "admitted":

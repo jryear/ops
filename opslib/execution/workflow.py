@@ -10,7 +10,7 @@ import uuid
 from .. import registry
 from . import policy, providers
 from .common import Blocked, Store, command, digest, encoded, git
-from .native import Hermes, Orca
+from .native import Hermes, Orca, require_hermes_hold
 
 
 def references(packet):
@@ -94,10 +94,7 @@ def ownership(packet, orca):
 
 def native_task(packet, hermes):
     result = hermes.task(packet["board"], packet["task_id"])
-    task = result.get("task", result)
-    # Ops cards are held from Hermes' autonomous dispatcher. Orca owns attempts.
-    if task.get("status") not in ("blocked", "review") or task.get("assignee"):
-        raise Blocked("Hermes packet must be unassigned and held from its dispatcher")
+    task = require_hermes_hold(result)
     for dependency in packet["dependencies"]:
         observed = hermes.task(packet["board"], dependency)
         if observed.get("task", observed).get("status") != "done":
@@ -211,10 +208,19 @@ class Execution:
 
     def status(self, attempt):
         packet, events = self.reconstruct(attempt)
-        native = native_task(packet, self.hermes)
+        # Observation must work after completion, reassignment or loss of hold.
+        # Those transitions prevent a new dispatch, not a truthful status read.
+        native_result = self.hermes.task(packet["board"], packet["task_id"])
+        native = native_result.get("task", native_result)
+        try:
+            require_hermes_hold(native_result)
+            hold = {"held": True, "reason": None}
+        except Blocked as exc:
+            hold = {"held": False, "reason": str(exc)}
         task_ids = {e["data"].get("orca_task_id") for e in events if e["data"].get("orca_task_id")}
         workers = [w for w in self.orca.workers(packet["ownership"]["orca_run_id"]) if w.get("taskId") in task_ids]
         return {"attempt_id": attempt, "hermes_status": native.get("status"),
+                "hermes_hold": hold,
                 "events": len(events), "workers": workers,
                 "observation": "available" if workers else "unavailable", "takeover_authorized": False}
 

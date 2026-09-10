@@ -11,6 +11,7 @@ import time
 
 from .common import Blocked, command, digest, encoded, git
 from .workflow import project_contract, references
+from .native import require_hermes_hold
 
 
 def candidate(packet, revision):
@@ -167,9 +168,7 @@ def integrate(execution, attempt, queue_task, expected_head, apply=False):
         relevant.sort(key=lambda t: (t.get("created_at", 0), t["id"]))
         if not relevant or relevant[0]["id"] != queue_task:
             raise Blocked("integration task is not first in the project's Hermes queue")
-        native_task = relevant[0]
-        if native_task.get("assignee") or native_task.get("status") != "blocked":
-            raise Blocked("integration task is owned by a competing dispatcher")
+        native_task = require_hermes_hold(execution.hermes.task(item["board"], queue_task), integration_queue=True)
         if attempt not in native_task.get("body", "") or item["candidate"] not in native_task.get("body", ""):
             raise Blocked("Hermes queue item does not identify this candidate and attempt")
         if expected_head != packet["integration"]["expected_head"] or git(canonical, "rev-parse", "HEAD") != expected_head:

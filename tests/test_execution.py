@@ -27,7 +27,7 @@ class FakeHermes:
         self.attachments = []
 
     def task(self, board, task):
-        return {"task": self.cards[task]}
+        return {"task": self.cards[task], "events": [{"kind": "blocked", "payload": {"kind": "capability"}}]}
 
     def attach(self, board, task, reference):
         self.attachments.append((board, task, reference))
@@ -205,6 +205,15 @@ class ExecutionTests(unittest.TestCase):
             with self.assertRaisesRegex(Blocked, "billing unknown"): self.execution.dispatch(self.packet, True)
         self.assertFalse(any(c[1] in ("task-create", "worker-start") for c in self.orca.calls))
         self.assertFalse(self.hermes.attachments)
+
+    def test_status_still_observes_task_after_completion_or_reassignment(self):
+        attempt = self.dispatch()
+        for state in ("ready", "running", "review", "done"):
+            self.hermes.cards["t_test"].update(status=state, assignee="new-owner")
+            observed = self.execution.status(attempt)
+            self.assertEqual(observed["hermes_status"], state)
+            self.assertFalse(observed["hermes_hold"]["held"])
+            self.assertFalse(observed["takeover_authorized"])
 
     def test_dirty_stale_symlink_and_unregistered_checkout(self):
         (self.worktree / "untracked").write_text("preserve me")

@@ -47,12 +47,18 @@ artifact acceptance remain separate checks. Existing runs retain their snapshots
 ./ops execution resolve principal --json
 ./ops execution validate examples/task-packet-v2.json --json
 ./ops execution verify-route principal --cwd "$PWD" --json
+./ops execution verify-route principal --launch-config --record --json
+./ops execution hold ops-execution TASK_ID --reason "Orca owns execution; awaiting admission" --json
 ./ops triage --scope execution --json
 ```
 
 Execution commands preserve the health envelope and exit codes. Without `--apply`,
 dispatch, verification, review, queue, integration and recovery only inspect or
 prepare. `verify-route --record` explicitly saves compact redacted evidence.
+`--launch-config` checks isolated Codex configuration without submitting a model
+turn. `hold --apply` uses Hermes's explicit block operation and verifies its durable
+event; a card merely created with a blocked label can be automatically promoted.
+Never use a hold to reclaim active work. Native claim history blocks ops admission.
 
 ## Contract
 

@@ -2,10 +2,40 @@
 from __future__ import annotations
 
 import os
+import re
 import shutil
 from pathlib import Path
 
 from .common import Blocked, command, json_command
+
+
+def require_hermes_hold(result, *, integration_queue=False):
+    """Hermes recompute_ready honors an explicit blocked event, not its label.
+
+    Native event order is authoritative. A created(status=blocked) card with no
+    blocked event is eligible for automatic promotion and default assignment.
+    """
+    task = result.get("task", result)
+    events = result.get("events")
+    if not isinstance(events, list) or not all(isinstance(e, dict) for e in events):
+        raise Blocked("Hermes hold event observation unavailable")
+    if any(e.get("kind") == "claimed" for e in events):
+        raise Blocked("Hermes has native claim history for this Orca-owned task; reconcile competing execution")
+    if task.get("assignee"):
+        raise Blocked("Hermes task needs an unassigned explicit dispatcher hold")
+    if integration_queue and task.get("status") == "review" and task.get("created_by") == "ops-execution":
+        # The native review dispatcher skips unassigned cards and does not
+        # apply default-assignee routing to this lane. Create here atomically,
+        # never expose a new integration item to the ready/default-assignee lane.
+        created = next((e for e in events if e.get("kind") == "created"), {})
+        if (created.get("payload") or {}).get("status") == "review":
+            return task
+    if task.get("status") != "blocked":
+        raise Blocked("Hermes task needs an unassigned explicit dispatcher hold")
+    transitions = [e for e in events if e.get("kind") in ("blocked", "unblocked")]
+    if not transitions or transitions[-1].get("kind") != "blocked":
+        raise Blocked("Hermes blocked label lacks a durable blocked event; automatic promotion remains possible")
+    return task
 
 
 class Orca:
@@ -71,11 +101,41 @@ class Hermes:
                  "ops execution evidence sha256=" + reference["sha256"] + " local=" + reference["path"],
                  "--author", "ops-execution"])
 
+    def hold(self, board, task, reason, *, apply=False):
+        observed = self.task(board, task)
+        body = observed.get("task", observed)
+        if (body.get("assignee") or body.get("status") not in ("ready", "blocked")
+                or any(e.get("kind") == "claimed" for e in observed.get("events", []))):
+            raise Blocked("only an unassigned ready task may receive an ops hold; no active claim is reclaimed")
+        if body.get("status") == "blocked":
+            require_hermes_hold(observed)
+            return {"task_id": task, "held": True, "mutated": False}
+        if not apply:
+            return {"task_id": task, "held": False, "mutated": False, "next_action": "record explicit capability block"}
+        # The supported block command has no expected-state CAS. Refuse active
+        # claims on readback. A raced claim permanently withholds ops admission
+        # until native reconciliation; never launch an Orca writer on that card.
+        command([self.executable, "kanban", "--board", board, "block", task,
+                 reason, "--kind", "capability"])
+        after = self.task(board, task)
+        require_hermes_hold(after)
+        before_claims = [e for e in observed.get("events", []) if e.get("kind") == "claimed"]
+        after_claims = [e for e in after.get("events", []) if e.get("kind") == "claimed"]
+        if before_claims != after_claims:
+            raise Blocked("Hermes claim raced with hold; preserve native evidence and reconcile before dispatch")
+        return {"task_id": task, "held": True, "mutated": True}
+
     def create_integration(self, board, task, candidate, body):
+        # Do not simulate atomic queue creation with create-ready then block:
+        # default-assignee dispatch could claim the task between those commands.
+        help_text = command([self.executable, "kanban", "create", "--help"])
+        modes = re.search(r"--initial-status\s+\{([^}]+)\}", help_text)
+        if not modes or "review" not in modes.group(1).split(","):
+            raise Blocked("Hermes CLI cannot atomically create an unassigned review queue item; integration queue creation withheld")
         result = self.read(board, "create", "Integrate " + task + " at " + candidate[:12],
-                           "--body", body, "--initial-status", "blocked", "--created-by", "ops-execution",
+                           "--body", body, "--initial-status", "review", "--created-by", "ops-execution",
                            "--idempotency-key", "integration:" + task + ":" + candidate,
                            "--max-retries", "1")
         if not isinstance(result, dict) or not result.get("id"):
             raise Blocked("integration task creation outcome unknown")
-        return result
+        return require_hermes_hold(self.task(board, result["id"]), integration_queue=True)

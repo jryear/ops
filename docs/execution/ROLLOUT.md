@@ -54,7 +54,67 @@ and real disposable Git worktrees; it must not be described as live acceptance.
 - Additive future-session profile templates and a narrow global-instruction diff
   under `config/`, with hashes of their current source files. These are not activated.
 
-## Verification
+## September 10 observation and admission repair
+
+This increment repairs two live findings. The infrastructure Hermes card had been
+automatically promoted to ready because creation with `--initial-status blocked`
+does not append the sticky `blocked` event. `ops execution hold` now records the
+native capability block and checks the resulting event. Admission refuses cards
+with missing hold evidence or any Hermes claim history. The infrastructure card
+`ops-execution/t_46355305` is explicitly held, unassigned, and has no claim events.
+Status observation remains available after a task is completed or reassigned.
+
+The hold command checks ready/unassigned state before mutation and reads back all
+claim evidence. Hermes's installed block CLI has no expected-state CAS: a concurrent
+claim is a native race requiring reconciliation, never permission for ops to launch
+another writer. The adapter does not unblock, reclaim or retry the task. Do not use
+this operator action to take over an existing Hermes worker.
+
+Codex discovery now calls `account/rateLimits/read`, preserves interleaved runtime
+notifications instead of discarding them, and fails explicitly on missing, malformed,
+oversized, mismatched or timed-out protocol observations. Its method allowlist cannot
+submit inference, refresh credentials, buy credits or consume reset credits. Compact
+evidence omits account IDs, reset-credit IDs and provider transcript contents.
+
+`verify-route principal --launch-config` successfully read back a fresh isolated
+Codex configuration: Sol/high, built-in OpenAI routing, ChatGPT authentication,
+approval `never`, and sandbox `danger-full-access`. Requested plugin, hook, app,
+memory, subagent and utility feature overrides were verified disabled, along with
+the inherited MCP servers. The child environment omits provider keys, routing
+variables, proxies and inherited session identities. Ops wrote no global config.
+This proves configuration acceptance by the installed executable, not a worker
+session, an inference result, absence of every auxiliary call, or an economic guarantee.
+No model turn was submitted and no Orca worker was started.
+
+The live account returned remaining allowance and a zero paid-credit balance.
+Those are timestamped observations, not a reservation or an exact task charge.
+The strict no-reroute and future no-credit guarantees remain unestablished.
+The bounded Orca launcher and provider-session event binding remain implementation
+work; the configuration verifier is only one component of that launcher.
+
+Queue admission now verifies native hold evidence too. Atomic creation directly
+in the unassigned review lane is capability-gated: installed Hermes advertises
+only `blocked` and `running` initial statuses, so creation is withheld before any
+card mutation. The adapter never exposes a new integration card to a ready/default-
+assignee window. This missing native interface must be resolved before live queue
+acceptance. Deterministic integration tests still use explicit native fixtures.
+
+**57 unittest cases and 70 legacy assertions pass.** New tests use real disposable
+subprocesses for fragmented notices, malformed replies, EOF, timeout, bounded
+observation and forbidden RPCs. The installed Hermes domain code was also exercised
+against a disposable database, with hooks disabled: a created blocked card promoted
+to ready, while an explicit block survived three recomputations. That test did not
+call a provider. The native task hold was separately verified through the live CLI.
+See [the compact evidence index](observation-update-20260910.json). All 50 inherited
+dirty files are unchanged. All three live instruction/configuration files differ
+from the September 9 baseline: `.codex/AGENTS.md`, `.claude/CLAUDE.md`, and
+`.codex/config.toml`. These edits were preserved; ops did not write those files.
+The global model was observed as Sol/medium while the isolated launch check
+read back Sol/high. The staged activation templates must be regenerated against
+current files before any future application. No activation or independent
+acceptance is claimed.
+
+## September 9 verification baseline
 
 `python3 -m unittest discover -s tests -v` passed with host observation access:
 **45 unittest cases and 70 legacy assertions** after the YOLO policy correction.
